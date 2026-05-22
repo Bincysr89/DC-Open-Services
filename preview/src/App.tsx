@@ -3648,7 +3648,7 @@ function LoginPage({ onAuth }: { onAuth: () => void }) {
           DC Open Services
         </h1>
         <p style={{ textAlign: 'center', fontSize: 14, color: '#697498', marginBottom: 32 }}>
-          This portal is protected. Enter the access password to continue.
+          Restricted access. Enter password to proceed.
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -3734,7 +3734,7 @@ function LoginPage({ onAuth }: { onAuth: () => void }) {
         </form>
 
         <p style={{ textAlign: 'center', fontSize: 12, color: '#b0b8c9', marginTop: 28 }}>
-          Dubai Customs · Open Services Portal
+          Dubai Customs · DC Open Services
         </p>
       </div>
 
