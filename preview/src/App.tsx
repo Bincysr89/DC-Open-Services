@@ -3595,7 +3595,6 @@ function LoginPage({ onAuth }: { onAuth: () => void }) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (pw === CORRECT_PASSWORD) {
-      sessionStorage.setItem(AUTH_KEY, '1');
       onAuth();
     } else {
       setError('Incorrect password. Please try again.');
@@ -3756,7 +3755,7 @@ function LoginPage({ onAuth }: { onAuth: () => void }) {
 
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
 export function App() {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem(AUTH_KEY) === '1');
+  const [authed, setAuthed] = useState(false);
   const [page, setPage] = useState<Page>({ name: 'home' });
 
   if (!authed) {
