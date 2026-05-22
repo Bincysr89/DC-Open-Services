@@ -3639,9 +3639,9 @@ function LoginPage({ onAuth }: { onAuth: () => void }) {
           animation: shaking ? 'dt-shake 0.45s ease' : undefined,
         }}
       >
-        {/* Dubai Trade logo */}
+        {/* App logo */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-          <img src="/icons/dubaitrade.svg" alt="Dubai Trade" style={{ height: 64, width: 'auto' }} />
+          <img src="/icons/figma-icon.svg" alt="DC Open Services" style={{ height: 72, width: 72 }} />
         </div>
 
         <h1 style={{ textAlign: 'center', fontSize: 22, fontWeight: 700, color: '#0e1b3d', marginBottom: 6 }}>
