@@ -1,0 +1,39 @@
+{
+  "name": "@dt-ui/angular",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "src"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": "./src/lib/styles.css"
+  },
+  "scripts": {
+    "build": "ng-packagr -p ng-package.json -c tsconfig.lib.json"
+  },
+  "peerDependencies": {
+    "@angular/common": ">=17",
+    "@angular/core": ">=17",
+    "@angular/forms": ">=17",
+    "rxjs": ">=7"
+  },
+  "dependencies": {
+    "@dt-ui/tokens": "workspace:*",
+    "tslib": "^2.6.0"
+  },
+  "devDependencies": {
+    "@angular/common": "^17.3.0",
+    "@angular/compiler": "^17.3.0",
+    "@angular/compiler-cli": "^17.3.0",
+    "@angular/core": "^17.3.0",
+    "@angular/forms": "^17.3.0",
+    "ng-packagr": "^17.3.0",
+    "rxjs": "^7.8.0",
+    "typescript": "~5.4.0",
+    "zone.js": "^0.14.0"
+  }
+}

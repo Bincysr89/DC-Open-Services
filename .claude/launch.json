@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dc-open-services",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "dt-ui-preview", "dev"],
+      "port": 5174
+    }
+  ]
+}

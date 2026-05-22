@@ -1,0 +1,5 @@
+@import '@dt-ui/tokens/css';
+/* The Angular library re-uses the same .dt-* class rules as React.
+   For convenience, copy of the rule-set lives in the React package's styles.css.
+   If you only consume @dt-ui/angular, also import @dt-ui/react/styles.css OR
+   inline-paste the rules here. */

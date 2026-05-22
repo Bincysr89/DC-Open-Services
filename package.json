@@ -1,0 +1,14 @@
+{
+  "name": "dubai-trade-ui",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Dubai Trade Component Library — shared tokens, React, and Angular packages",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "build": "pnpm -r build",
+    "build:tokens": "pnpm --filter @dt-ui/tokens build",
+    "build:react": "pnpm --filter @dt-ui/react build",
+    "build:angular": "pnpm --filter @dt-ui/angular build"
+  },
+  "packageManager": "pnpm@9.0.0"
+}
