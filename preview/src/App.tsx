@@ -3582,9 +3582,195 @@ function SuccessPage({ service, navigate }: { service: ServiceDef; navigate: (pa
   );
 }
 
+// ─── LOGIN PAGE ───────────────────────────────────────────────────────────────
+const CORRECT_PASSWORD = 'Open_Services';
+const AUTH_KEY = 'dt_open_services_auth';
+
+function LoginPage({ onAuth }: { onAuth: () => void }) {
+  const [pw, setPw] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [error, setError] = useState('');
+  const [shaking, setShaking] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pw === CORRECT_PASSWORD) {
+      sessionStorage.setItem(AUTH_KEY, '1');
+      onAuth();
+    } else {
+      setError('Incorrect password. Please try again.');
+      setShaking(true);
+      setTimeout(() => setShaking(false), 500);
+    }
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(160deg, #EBF2FC 0%, #F7F9FF 60%, #fff 100%)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: "'Inter', 'Segoe UI', sans-serif",
+    }}>
+      {/* Header strip */}
+      <div style={{
+        position: 'fixed', top: 0, left: 0, right: 0,
+        background: '#fff',
+        borderBottom: '1px solid #E2EBF9',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 40px', height: 64, zIndex: 100,
+        boxShadow: '0 1px 6px rgba(19,96,210,0.06)',
+      }}>
+        <img src="/icons/Government Of Dubai.svg" alt="Government of Dubai" style={{ height: 36 }} />
+        <img src="/icons/dubaitrade.svg" alt="Dubai Trade" style={{ height: 28 }} />
+      </div>
+
+      {/* Card */}
+      <div
+        style={{
+          background: '#fff',
+          borderRadius: 16,
+          boxShadow: '0 8px 40px rgba(19,96,210,0.12)',
+          padding: '48px 44px 40px',
+          width: '100%',
+          maxWidth: 420,
+          animation: shaking ? 'dt-shake 0.45s ease' : undefined,
+        }}
+      >
+        {/* Lock icon badge */}
+        <div style={{
+          width: 56, height: 56, borderRadius: '50%',
+          background: 'linear-gradient(135deg, #1360D2 0%, #3a82f7 100%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 24px',
+          boxShadow: '0 4px 16px rgba(19,96,210,0.28)',
+        }}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+
+        <h1 style={{ textAlign: 'center', fontSize: 22, fontWeight: 700, color: '#0e1b3d', marginBottom: 6 }}>
+          DC Open Services
+        </h1>
+        <p style={{ textAlign: 'center', fontSize: 14, color: '#697498', marginBottom: 32 }}>
+          This portal is protected. Enter the access password to continue.
+        </p>
+
+        <form onSubmit={handleSubmit}>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#3a4a5c', marginBottom: 6 }}>
+            Password
+          </label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type={showPw ? 'text' : 'password'}
+              value={pw}
+              onChange={e => { setPw(e.target.value); setError(''); }}
+              placeholder="Enter access password"
+              autoFocus
+              style={{
+                width: '100%',
+                padding: '11px 44px 11px 14px',
+                borderRadius: 8,
+                border: error ? '1.5px solid #dc3545' : '1.5px solid #CBD5E1',
+                fontSize: 15,
+                color: '#0e1b3d',
+                background: '#FAFBFD',
+                outline: 'none',
+                boxSizing: 'border-box',
+                transition: 'border-color 0.2s',
+              }}
+              onFocus={e => { if (!error) e.currentTarget.style.borderColor = '#1360D2'; }}
+              onBlur={e => { if (!error) e.currentTarget.style.borderColor = '#CBD5E1'; }}
+            />
+            {/* Show/hide toggle */}
+            <button
+              type="button"
+              onClick={() => setShowPw(v => !v)}
+              style={{
+                position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', cursor: 'pointer', color: '#8898aa',
+                display: 'flex', alignItems: 'center', padding: 2,
+              }}
+            >
+              {showPw ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              )}
+            </button>
+          </div>
+
+          {error && (
+            <p style={{ color: '#dc3545', fontSize: 13, marginTop: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            style={{
+              marginTop: 24,
+              width: '100%',
+              padding: '12px',
+              background: 'linear-gradient(90deg, #1360D2 0%, #2176e8 100%)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: 'pointer',
+              letterSpacing: 0.3,
+              boxShadow: '0 3px 12px rgba(19,96,210,0.28)',
+              transition: 'opacity 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.92')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+          >
+            Access Portal
+          </button>
+        </form>
+
+        <p style={{ textAlign: 'center', fontSize: 12, color: '#b0b8c9', marginTop: 28 }}>
+          Dubai Customs · Open Services Portal
+        </p>
+      </div>
+
+      {/* Shake animation keyframes */}
+      <style>{`
+        @keyframes dt-shake {
+          0%,100% { transform: translateX(0); }
+          15%      { transform: translateX(-8px); }
+          30%      { transform: translateX(8px); }
+          45%      { transform: translateX(-6px); }
+          60%      { transform: translateX(6px); }
+          75%      { transform: translateX(-3px); }
+          90%      { transform: translateX(3px); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
 export function App() {
+  const [authed, setAuthed] = useState(() => sessionStorage.getItem(AUTH_KEY) === '1');
   const [page, setPage] = useState<Page>({ name: 'home' });
+
+  if (!authed) {
+    return <LoginPage onAuth={() => setAuthed(true)} />;
+  }
 
   const navigate = (next: Page) => {
     setPage(next);
