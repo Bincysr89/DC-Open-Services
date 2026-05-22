@@ -1,3 +1,17 @@
+import {
+  requestBusinessRegistrationDubaiCustoms,
+  requestTradeAgencyRecording,
+  requestTradeMarkRecording,
+  submitTradeIntellectualPropertyComplaint,
+  submitRAFEDInformation,
+  requestCustomsOpinion,
+  appealCustomsDecision,
+  requestGoodsClassification,
+  payBillsOrFines,
+  requestCertificates,
+  trackServiceStatus,
+} from './icons';
+
 export type ServiceId =
   | 'trade-agency-recording'
   | 'trade-mark-recording'
@@ -79,7 +93,7 @@ export const SERVICES: ServiceDef[] = [
     serviceType: 'Transactional',
     serviceHierarchy: 'Sub Service',
     icon: '🏢',
-    iconFile: '/icons/Request Business Registration - Dubai Customs.svg',
+    iconFile: requestBusinessRegistrationDubaiCustoms,
   },
   {
     id: 'trade-agency-recording',
@@ -107,7 +121,7 @@ export const SERVICES: ServiceDef[] = [
     serviceType: 'Transactional',
     serviceHierarchy: 'Sub Service',
     icon: '📋',
-    iconFile: '/icons/Request Trade Agency Recording.svg',
+    iconFile: requestTradeAgencyRecording,
   },
   {
     id: 'trade-mark-recording',
@@ -135,7 +149,7 @@ export const SERVICES: ServiceDef[] = [
     serviceType: 'Transactional',
     serviceHierarchy: 'Sub Service',
     icon: '™️',
-    iconFile: '/icons/Request Trade Mark Recording.svg',
+    iconFile: requestTradeMarkRecording,
   },
   {
     id: 'trade-ip-complaint',
@@ -163,7 +177,7 @@ export const SERVICES: ServiceDef[] = [
     serviceType: 'Transactional',
     serviceHierarchy: 'Sub Service',
     icon: '⚖️',
-    iconFile: '/icons/Submit Trade Intellectual Property Complaint.svg',
+    iconFile: submitTradeIntellectualPropertyComplaint,
   },
   {
     id: 'rafed-information',
@@ -191,7 +205,7 @@ export const SERVICES: ServiceDef[] = [
     serviceType: 'Informational',
     serviceHierarchy: 'Sub Service',
     icon: '🛡️',
-    iconFile: '/icons/Submit RAFED Information.svg',
+    iconFile: submitRAFEDInformation,
   },
   {
     id: 'customs-opinion',
@@ -219,7 +233,7 @@ export const SERVICES: ServiceDef[] = [
     serviceType: 'Transactional',
     serviceHierarchy: 'Sub Service',
     icon: '💬',
-    iconFile: '/icons/Request Customs Opinion.svg',
+    iconFile: requestCustomsOpinion,
   },
   {
     id: 'appeal-customs-decision',
@@ -247,7 +261,7 @@ export const SERVICES: ServiceDef[] = [
     serviceType: 'Transactional',
     serviceHierarchy: 'Sub Service',
     icon: '📝',
-    iconFile: '/icons/Appeal Customs Decision.svg',
+    iconFile: appealCustomsDecision,
   },
   {
     id: 'goods-classification',
@@ -275,7 +289,7 @@ export const SERVICES: ServiceDef[] = [
     serviceType: 'Transactional',
     serviceHierarchy: 'Sub Service',
     icon: '📦',
-    iconFile: '/icons/Request Goods Classification.svg',
+    iconFile: requestGoodsClassification,
   },
   {
     id: 'pay-bills',
@@ -303,7 +317,7 @@ export const SERVICES: ServiceDef[] = [
     serviceType: 'Transactional',
     serviceHierarchy: 'Sub Service',
     icon: '💳',
-    iconFile: '/icons/Pay Bills or Fines.svg',
+    iconFile: payBillsOrFines,
   },
   {
     id: 'request-certificates',
@@ -331,7 +345,7 @@ export const SERVICES: ServiceDef[] = [
     serviceType: 'Transactional',
     serviceHierarchy: 'Sub Service',
     icon: '🏆',
-    iconFile: '/icons/Request Certificates.svg',
+    iconFile: requestCertificates,
   },
   {
     id: 'track-status',
@@ -359,7 +373,7 @@ export const SERVICES: ServiceDef[] = [
     serviceType: 'Informational',
     serviceHierarchy: 'Sub Service',
     icon: '🔍',
-    iconFile: '/icons/Track Service Status.svg',
+    iconFile: trackServiceStatus,
   },
   {
     id: 'duty-account',

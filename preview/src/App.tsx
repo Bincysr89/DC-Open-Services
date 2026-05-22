@@ -1,5 +1,23 @@
 import { useState, useRef, useEffect, Fragment } from 'react';
 import { SERVICES, getService, type ServiceDef } from './data';
+import {
+  governmentOfDubai,
+  dubaitrade,
+  figmaIcon,
+  dirham,
+  appealCustomsDecision,
+  payBillsOrFines,
+  requestBusinessRegistrationDubaiCustoms,
+  requestCertificates,
+  requestCustomsOpinion,
+  requestGoodsClassification,
+  requestTradeAgencyRecording,
+  requestTradeMarkRecording,
+  submitRAFEDInformation,
+  submitTradeIntellectualPropertyComplaint,
+  trackServiceStatus,
+  fileType,
+} from './icons';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Page =
@@ -258,7 +276,7 @@ function Navbar({ onHome }: { onHome: () => void }) {
     <nav className="dc-navbar">
       <div className="dc-navbar__inner">
         <div className="dc-navbar__left">
-          <img src="/icons/Government Of Dubai.svg" alt="Government of Dubai" className="dc-navbar__gov-logo" />
+          <img src={governmentOfDubai} alt="Government of Dubai" className="dc-navbar__gov-logo" />
           <ul className="dc-navbar__menu">
             <li><a href="#" className="dc-navbar__link" onClick={onHome}>Home</a></li>
             <li><a href="#" className="dc-navbar__link">Explore</a></li>
@@ -272,7 +290,7 @@ function Navbar({ onHome }: { onHome: () => void }) {
           <button className="dc-navbar__icon-btn"><SearchIcon /></button>
           <a href="#" className="dc-navbar__link">العربية</a>
           <a href="#" className="dc-navbar__link">Login</a>
-          <img src="/icons/dubaitrade.svg" alt="Dubai Trade" className="dc-navbar__dt-logo" />
+          <img src={dubaitrade} alt="Dubai Trade" className="dc-navbar__dt-logo" />
         </div>
       </div>
     </nav>
@@ -571,7 +589,7 @@ function FileUploadRow({ label, hasFile }: { label?: string; hasFile?: boolean }
     return (
       <div className="dc-file-row">
         <div className="dc-file-input-wrap">
-          <img src="/icons/file-type.svg" width="28" height="28" alt="file" className="dc-file-type-icon" />
+          <img src={fileType} width="28" height="28" alt="file" className="dc-file-type-icon" />
           <span className="dc-file-input-text">{file}</span>
           <div className="dc-file-input-trail">
             <button className="dc-file-tag__remove" onClick={() => setFile(null)}>×</button>
@@ -1212,7 +1230,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
             {service.id !== 'request-certificates' && !isIPComplaint && !isAppealCustomsDecision && !isCustomsOpinion && (
               <div className="dc-basic-info-card" style={{ flex: 1 }}>
                 <div className="dc-basic-info-card__icon dc-basic-info-card__icon--green">
-                  <img src="/icons/dirham.svg" width="18" height="18" alt="AED" style={{ filter: 'brightness(0)' }} />
+                  <img src={dirham} width="18" height="18" alt="AED" style={{ filter: 'brightness(0)' }} />
                 </div>
                 <div className="dc-basic-info-card__body">
                   <span className="dc-basic-info-card__label">Charges</span>
@@ -1265,7 +1283,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
                 {selectedCert && (
                   <div className="dc-basic-info-card" style={{ flex: 1, height: 56, alignItems: 'center' }}>
                     <div className="dc-basic-info-card__icon dc-basic-info-card__icon--green">
-                      <img src="/icons/dirham.svg" width="18" height="18" alt="AED" style={{ filter: 'brightness(0)' }} />
+                      <img src={dirham} width="18" height="18" alt="AED" style={{ filter: 'brightness(0)' }} />
                     </div>
                     <div className="dc-basic-info-card__body">
                       <span className="dc-basic-info-card__label">Charges</span>
@@ -1311,7 +1329,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
                 {selectedIPType && (
                   <div className="dc-basic-info-card" style={{ flex: 1, height: 56, alignItems: 'center' }}>
                     <div className="dc-basic-info-card__icon dc-basic-info-card__icon--green">
-                      <img src="/icons/dirham.svg" width="18" height="18" alt="AED" style={{ filter: 'brightness(0)' }} />
+                      <img src={dirham} width="18" height="18" alt="AED" style={{ filter: 'brightness(0)' }} />
                     </div>
                     <div className="dc-basic-info-card__body">
                       <span className="dc-basic-info-card__label">Charges</span>
@@ -3008,7 +3026,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
                   {selectedMiscType && (
                     <div className="dc-basic-info-card" style={{ flex: 1, height: 56, alignItems: 'center' }}>
                       <div className="dc-basic-info-card__icon dc-basic-info-card__icon--green">
-                        <img src="/icons/dirham.svg" width="18" height="18" alt="AED" style={{ filter: 'brightness(0)' }} />
+                        <img src={dirham} width="18" height="18" alt="AED" style={{ filter: 'brightness(0)' }} />
                       </div>
                       <div className="dc-basic-info-card__body">
                         <span className="dc-basic-info-card__label">Charges</span>
@@ -3622,8 +3640,8 @@ function LoginPage({ onAuth }: { onAuth: () => void }) {
         padding: '0 40px', height: 64, zIndex: 100,
         boxShadow: '0 1px 6px rgba(19,96,210,0.06)',
       }}>
-        <img src="/icons/Government Of Dubai.svg" alt="Government of Dubai" style={{ height: 36 }} />
-        <img src="/icons/dubaitrade.svg" alt="Dubai Trade" style={{ height: 28 }} />
+        <img src={governmentOfDubai} alt="Government of Dubai" style={{ height: 36 }} />
+        <img src={dubaitrade} alt="Dubai Trade" style={{ height: 28 }} />
       </div>
 
       {/* Card */}
@@ -3640,7 +3658,7 @@ function LoginPage({ onAuth }: { onAuth: () => void }) {
       >
         {/* App logo */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-          <img src="/icons/figma-icon.svg" alt="DC Open Services" style={{ height: 72, width: 72 }} />
+          <img src={figmaIcon} alt="DC Open Services" style={{ height: 72, width: 72 }} />
         </div>
 
         <h1 style={{ textAlign: 'center', fontSize: 22, fontWeight: 700, color: '#0e1b3d', marginBottom: 6 }}>
