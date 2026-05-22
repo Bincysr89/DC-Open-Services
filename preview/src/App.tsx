@@ -3639,18 +3639,9 @@ function LoginPage({ onAuth }: { onAuth: () => void }) {
           animation: shaking ? 'dt-shake 0.45s ease' : undefined,
         }}
       >
-        {/* Lock icon badge */}
-        <div style={{
-          width: 56, height: 56, borderRadius: '50%',
-          background: 'linear-gradient(135deg, #1360D2 0%, #3a82f7 100%)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 24px',
-          boxShadow: '0 4px 16px rgba(19,96,210,0.28)',
-        }}>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
+        {/* Dubai Trade logo */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+          <img src="/icons/dubaitrade.svg" alt="Dubai Trade" style={{ height: 64, width: 'auto' }} />
         </div>
 
         <h1 style={{ textAlign: 'center', fontSize: 22, fontWeight: 700, color: '#0e1b3d', marginBottom: 6 }}>
