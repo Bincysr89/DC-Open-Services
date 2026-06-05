@@ -17,6 +17,7 @@ import {
   submitTradeIntellectualPropertyComplaint,
   trackServiceStatus,
   fileType,
+  heroBg,
 } from './icons';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -303,7 +304,7 @@ function HeroBanner({ title, subtitle, showButton, onStartService }: {
 }) {
   return (
     <div className="dc-hero-wrap">
-      <div className="dc-hero">
+      <div className="dc-hero" style={{ backgroundImage: `url('${heroBg}'), linear-gradient(#0B1E3E, #0B1E3E)` }}>
         <div className="dc-hero__content">
           <h1 className="dc-hero__title">{title}</h1>
           {subtitle && <p className="dc-hero__subtitle">{subtitle}</p>}
