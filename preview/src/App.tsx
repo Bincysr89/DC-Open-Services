@@ -759,8 +759,87 @@ function HomePage({ navigate }: { navigate: (page: Page) => void }) {
   );
 }
 
+// ─── Service Detail Icons (matching Figma outlined style) ─────────────────────
+function SdIconChannel() {
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4" strokeLinecap="round"/></svg>;
+}
+function SdIconClock() {
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+}
+function SdIconRelationship() {
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><path d="M7 16l-4-4 4-4M17 8l4 4-4 4M14 4l-4 16" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+}
+function SdIconCategory() {
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><circle cx="9" cy="7" r="3"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" strokeLinecap="round"/><path d="M16 3.13a4 4 0 0 1 0 7.75M21 21v-2a4 4 0 0 0-3-3.85" strokeLinecap="round"/></svg>;
+}
+function SdIconGear() {
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
+}
+function SdIconHierarchy() {
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><path d="M12 2L2 19h20L12 2z" strokeLinejoin="round"/><path d="M12 10v4M10 14h4" strokeLinecap="round"/></svg>;
+}
+function SdIconInterconnect() {
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><path d="M5 12h14M15 8l4 4-4 4M9 16l-4-4 4-4" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+}
+function SdIconSchedule() {
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round"/><circle cx="12" cy="16" r="2"/></svg>;
+}
+function SdIconBundle() {
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2M12 12v4M10 14h4" strokeLinecap="round"/></svg>;
+}
+function SdIconUrgency() {
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5" strokeLinecap="round"/><circle cx="12" cy="16" r="0.5" fill="#0E1B3D"/></svg>;
+}
+function SdIconLimitation() {
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><circle cx="12" cy="12" r="9"/><path d="M8 12h8" strokeLinecap="round"/></svg>;
+}
+
+function ServiceDetailItem({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+  return (
+    <div className="dc-sd-item">
+      <div className="dc-sd-item__header">
+        <span className="dc-sd-item__icon">{icon}</span>
+        <span className="dc-sd-item__label">{label}</span>
+      </div>
+      <div className="dc-sd-item__value">{children}</div>
+    </div>
+  );
+}
+
 // ─── INFO PAGE ────────────────────────────────────────────────────────────────
+type InfoTab = 'information' | 'tutorials' | 'faqs' | 'updates' | 'downloads';
+
+const INFO_TABS: { id: InfoTab; label: string; icon: React.ReactNode }[] = [
+  {
+    id: 'information',
+    label: 'Information',
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>,
+  },
+  {
+    id: 'tutorials',
+    label: 'Tutorials',
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="14" height="14" rx="2"/><path d="M22 4l-6 4 6 4V4z"/></svg>,
+  },
+  {
+    id: 'faqs',
+    label: "Common FAQ's",
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+  },
+  {
+    id: 'updates',
+    label: 'Updates',
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>,
+  },
+  {
+    id: 'downloads',
+    label: 'Downloads',
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+  },
+];
+
 function InfoPage({ service, navigate }: { service: ServiceDef; navigate: (page: Page) => void }) {
+  const [activeTab, setActiveTab] = useState<InfoTab>('information');
+
   return (
     <>
       <HeroBanner title={service.title} subtitle={service.subtitle} showButton onStartService={() => navigate({ name: 'form', serviceId: service.id })} />
@@ -768,7 +847,7 @@ function InfoPage({ service, navigate }: { service: ServiceDef; navigate: (page:
         <Breadcrumb items={[
           { label: 'Home', onClick: () => navigate({ name: 'home' }) },
           { label: 'Service Center', onClick: () => navigate({ name: 'home' }) },
-          { label: 'Dubai Trade', onClick: () => navigate({ name: 'home' }) },
+          { label: 'Dubai Customs', onClick: () => navigate({ name: 'home' }) },
           { label: service.title },
         ]} />
         <div className="dc-info-header">
@@ -776,7 +855,22 @@ function InfoPage({ service, navigate }: { service: ServiceDef; navigate: (page:
           <h2 className="dc-info-header__title">{service.title}</h2>
         </div>
 
-        <div className="dc-info-layout">
+        {/* Tabs */}
+        <div className="dc-info-tabs">
+          {INFO_TABS.map(tab => (
+            <button
+              key={tab.id}
+              className={`dc-info-tab${activeTab === tab.id ? ' dc-info-tab--active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Information tab ── */}
+        {activeTab === 'information' && (
           <div className="dc-info-main">
             <section className="dc-info-section">
               <h3 className="dc-info-section__title">Description</h3>
@@ -793,6 +887,52 @@ function InfoPage({ service, navigate }: { service: ServiceDef; navigate: (page:
                 ]} />
               </div>
             </section>
+
+            {/* Service Details accordion — 5-column grid matching Figma */}
+            <Accordion title="Service Details" defaultOpen>
+              <div className="dc-sd-grid">
+                <ServiceDetailItem icon={<SdIconChannel />} label="Service Delivery Channel">
+                  <ul className="dc-sd-list">
+                    {service.deliveryChannels.map(c => <li key={c}>{c}</li>)}
+                  </ul>
+                </ServiceDetailItem>
+                <ServiceDetailItem icon={<SdIconClock />} label="Service Completion Time">
+                  <ul className="dc-sd-list"><li>{service.completionTime}</li></ul>
+                </ServiceDetailItem>
+                <ServiceDetailItem icon={<SdIconRelationship />} label="Relationship Type">
+                  <ul className="dc-sd-list">
+                    {service.relationshipType.map(r => <li key={r}>{r}</li>)}
+                  </ul>
+                </ServiceDetailItem>
+                <ServiceDetailItem icon={<SdIconCategory />} label="Target Category">
+                  <ul className="dc-sd-list"><li>{service.targetCategory}</li></ul>
+                </ServiceDetailItem>
+                <ServiceDetailItem icon={<SdIconGear />} label="Service Type">
+                  <ul className="dc-sd-list"><li>{service.serviceType}</li></ul>
+                </ServiceDetailItem>
+                <ServiceDetailItem icon={<SdIconHierarchy />} label="Service Hierarchy">
+                  <ul className="dc-sd-list"><li>{service.serviceHierarchy}</li></ul>
+                </ServiceDetailItem>
+                <ServiceDetailItem icon={<SdIconInterconnect />} label="Service Interconnection">
+                  <ul className="dc-sd-list"><li>N/A</li></ul>
+                </ServiceDetailItem>
+                <ServiceDetailItem icon={<SdIconSchedule />} label="Service Delivery Time">
+                  <ul className="dc-sd-list">
+                    <li>Available around the clock (Online and Mobile Web)</li>
+                    <li>Refer to <a href="#" style={{ color: '#1360D2' }}>customer happiness centers</a> working hours (Center)</li>
+                  </ul>
+                </ServiceDetailItem>
+                <ServiceDetailItem icon={<SdIconBundle />} label="Bundle">
+                  <ul className="dc-sd-list"><li>N/A</li></ul>
+                </ServiceDetailItem>
+                <ServiceDetailItem icon={<SdIconUrgency />} label="Service Urgency:">
+                  <ul className="dc-sd-list"><li>N/A</li></ul>
+                </ServiceDetailItem>
+                <ServiceDetailItem icon={<SdIconLimitation />} label="Service Limitation:">
+                  <ul className="dc-sd-list"><li>N/A</li></ul>
+                </ServiceDetailItem>
+              </div>
+            </Accordion>
 
             <Accordion title="Service Fee" defaultOpen>
               <div className="dc-fee-content">
@@ -816,55 +956,31 @@ function InfoPage({ service, navigate }: { service: ServiceDef; navigate: (page:
               </p>
             </Accordion>
           </div>
+        )}
 
-          <aside className="dc-info-sidebar">
-            <InfoSidebarItem icon="🏢" label="Service Delivery Channel:">
-              <ul className="dc-sidebar-list">
-                {service.deliveryChannels.map(c => <li key={c}>{c}</li>)}
-              </ul>
-            </InfoSidebarItem>
-            <InfoSidebarItem icon="⏱" label="Service Completion Time:">
-              <span>{service.completionTime}</span>
-            </InfoSidebarItem>
-            <InfoSidebarItem icon="🔗" label="Relationship Type:">
-              <ul className="dc-sidebar-list">
-                {service.relationshipType.map(r => <li key={r}>{r}</li>)}
-              </ul>
-            </InfoSidebarItem>
-            <InfoSidebarItem icon="👥" label="Target Category:">
-              <span>{service.targetCategory}</span>
-            </InfoSidebarItem>
-            <InfoSidebarItem icon="⚙️" label="Service Type:">
-              <span>{service.serviceType}</span>
-            </InfoSidebarItem>
-            <InfoSidebarItem icon="🏗" label="Service Hierarchy:">
-              <span>{service.serviceHierarchy}</span>
-            </InfoSidebarItem>
-            <InfoSidebarItem icon="⚡" label="Service Urgency:">
-              <span>N/A</span>
-            </InfoSidebarItem>
-            <InfoSidebarItem icon="🔀" label="Service Interconnection:">
-              <span>N/A</span>
-            </InfoSidebarItem>
-            <InfoSidebarItem icon="⛔" label="Service Limitation:">
-              <span>N/A</span>
-            </InfoSidebarItem>
-            <InfoSidebarItem icon="🕐" label="Service Delivery Time:">
-              <ul className="dc-sidebar-list">
-                <li>Available around the clock (Online and Mobile Web)</li>
-                <li>Refer to <a href="#" style={{ color: '#1360D2' }}>customer happiness centers</a> working hours (Center)</li>
-              </ul>
-            </InfoSidebarItem>
-            <InfoSidebarItem icon="📦" label="Bundle:">
-              <span>N/A</span>
-            </InfoSidebarItem>
-            <div style={{ padding: '16px 0 0' }}>
-              <button className="dc-btn dc-btn--primary dc-btn--full" onClick={() => navigate({ name: 'form', serviceId: service.id })}>
-                Start Service
-              </button>
+        {/* ── Tutorials tab ── */}
+        {activeTab === 'tutorials' && (
+          <div className="dc-tab-content">
+            <h3 className="dc-info-section__title" style={{ marginBottom: 20 }}>Video Tutorial Title</h3>
+            <div className="dc-video-thumb">
+              <div className="dc-video-thumb__play">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+              </div>
             </div>
-          </aside>
-        </div>
+          </div>
+        )}
+
+        {/* ── Unavailable tabs ── */}
+        {(activeTab === 'faqs' || activeTab === 'updates' || activeTab === 'downloads') && (
+          <div className="dc-tab-content dc-tab-unavailable">
+            <div className="dc-tab-unavailable__icon">
+              <InfoIcon />
+            </div>
+            <p className="dc-tab-unavailable__text">
+              Content is not available, please check back another time.
+            </p>
+          </div>
+        )}
       </div>
     </>
   );
@@ -1707,13 +1823,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5E6B7A" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
             <span>Only .rtf .doc .docx .pdf .jpg .jpeg .gif .png .bmp .tiff is allowed, maximum 5MB per file</span>
           </div>
-          <div className="dc-attachments__grid">
-            <FileUploadRow hasFile />
-            <FileUploadRow hasFile />
-            <FileUploadRow />
-            <FileUploadRow />
-            <FileUploadRow />
-          </div>
+          <FileUploadRow />
         </div>
       </div>
 
@@ -3308,12 +3418,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5E6B7A" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
                   <span>Only .rtf .doc .docx .pdf .jpg .jpeg .gif .png .bmp .tiff is allowed, maximum 5MB per file</span>
                 </div>
-                <div className="dc-attachments__grid">
-                  <FileUploadRow />
-                  <FileUploadRow />
-                  <FileUploadRow />
-                  <FileUploadRow />
-                </div>
+                <FileUploadRow />
               </div>
             </div>
 

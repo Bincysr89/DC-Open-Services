@@ -80,11 +80,11 @@ ul { list-style: none; margin: 0; padding: 0; }
 .dc-hero__title { font-size: 64px; font-weight: 400; color: #fff; margin: 0 0 10px; line-height: 1.2; }
 .dc-hero__subtitle { font-size: 24px; color: rgba(255,255,255,0.65); margin: 0; }
 .dc-hero__btn {
-  background: transparent; border: 2px solid rgba(255,255,255,0.8); color: #fff;
+  background: #fff; border: 2px solid #fff; color: #1360D2;
   padding: 10px 24px; border-radius: 6px; font-size: 14px; font-weight: 600;
   transition: all 120ms;
 }
-.dc-hero__btn:hover { background: rgba(255,255,255,0.1); }
+.dc-hero__btn:hover { background: #f0f5ff; border-color: #f0f5ff; }
 
 /* ─── Container & Layout ──────────────────────────────────────────────────────── */
 .dc-container { max-width: 1440px; margin: 0 auto; padding: 0 24px 48px; }
@@ -185,6 +185,78 @@ ul { list-style: none; margin: 0; padding: 0; }
 .dc-info-header__title { font-size: 28px; font-weight: 400; color: #000; margin: 0; letter-spacing: -0.14px; }
 .dc-info-layout { display: grid; grid-template-columns: 1fr 300px; gap: 32px; align-items: start; margin-top: 8px; }
 @media (max-width: 900px) { .dc-info-layout { grid-template-columns: 1fr; } }
+
+/* ─── Info Page Tabs ──────────────────────────────────────────────────────────── */
+.dc-info-tabs {
+  display: flex; align-items: center; gap: 0;
+  border-bottom: 1.5px solid #E8EDF2;
+  margin-bottom: 0;
+}
+.dc-info-tab {
+  display: flex; align-items: center; gap: 7px;
+  padding: 14px 20px; font-size: 14px; font-weight: 400; color: #697498;
+  border: none; background: transparent; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1.5px;
+  transition: color 120ms, border-color 120ms; white-space: nowrap;
+}
+.dc-info-tab:hover:not(.dc-info-tab--active) { color: #0E1B3D; }
+.dc-info-tab--active { color: #1360D2; border-bottom-color: #1360D2; }
+.dc-info-tab svg { flex-shrink: 0; }
+
+/* ─── Service Details Grid (inside accordion) ────────────────────────────────── */
+.dc-sd-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 28px 24px;
+}
+@media (max-width: 1100px) { .dc-sd-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 700px)  { .dc-sd-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.dc-sd-item { display: flex; flex-direction: column; gap: 8px; }
+.dc-sd-item__header { display: flex; align-items: center; gap: 10px; }
+.dc-sd-item__icon { flex-shrink: 0; display: flex; }
+.dc-sd-item__label { font-size: 15px; font-weight: 600; color: #0E1B3D; line-height: 1.3; }
+.dc-sd-item__value { padding-left: 32px; }
+
+.dc-sd-list { margin: 0; padding: 0; list-style: disc; padding-left: 16px; }
+.dc-sd-list li { font-size: 14px; color: #585E71; line-height: 1.6; letter-spacing: 0.14px; }
+.dc-sd-list a { color: #1360D2; }
+
+/* ─── Tab content area ────────────────────────────────────────────────────────── */
+.dc-tab-content { padding: 32px 0; }
+
+/* ─── Video thumbnail ─────────────────────────────────────────────────────────── */
+.dc-video-thumb {
+  position: relative; width: 240px; height: 160px;
+  border-radius: 10px; overflow: hidden; cursor: pointer;
+  background: linear-gradient(135deg, #5a9a5a 0%, #3a6e3a 50%, #1e4a1e 100%);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.14);
+}
+.dc-video-thumb:hover .dc-video-thumb__play { transform: translate(-50%,-50%) scale(1.1); }
+.dc-video-thumb__play {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 52px; height: 52px; border-radius: 50%;
+  background: rgba(255,255,255,0.9);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 160ms;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+}
+
+/* ─── Content unavailable state ───────────────────────────────────────────────── */
+.dc-tab-unavailable {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 80px 16px; gap: 16px;
+}
+.dc-tab-unavailable__icon {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: #F4F6FB; display: flex; align-items: center; justify-content: center;
+  color: #AAB0C8;
+}
+.dc-tab-unavailable__icon svg { width: 28px; height: 28px; }
+.dc-tab-unavailable__text {
+  font-size: 16px; color: #697498; text-align: center; max-width: 340px; margin: 0;
+}
 
 .dc-info-main { display: flex; flex-direction: column; gap: 0; }
 .dc-info-section { padding: 20px 0; border-bottom: 1px solid #E8EDF2; }
