@@ -214,7 +214,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 
 .dc-sd-item { display: flex; flex-direction: column; gap: 8px; }
 .dc-sd-item__header { display: flex; align-items: center; gap: 10px; }
-.dc-sd-item__icon { flex-shrink: 0; display: flex; }
+.dc-sd-item__icon { flex-shrink: 0; display: block; }
 .dc-sd-item__label { font-size: 15px; font-weight: 600; color: #0E1B3D; line-height: 1.3; }
 .dc-sd-item__value { padding-left: 32px; }
 

@@ -759,46 +759,26 @@ function HomePage({ navigate }: { navigate: (page: Page) => void }) {
   );
 }
 
-// ─── Service Detail Icons (matching Figma outlined style) ─────────────────────
-function SdIconChannel() {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4" strokeLinecap="round"/></svg>;
-}
-function SdIconClock() {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" strokeLinecap="round" strokeLinejoin="round"/></svg>;
-}
-function SdIconRelationship() {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><path d="M7 16l-4-4 4-4M17 8l4 4-4 4M14 4l-4 16" strokeLinecap="round" strokeLinejoin="round"/></svg>;
-}
-function SdIconCategory() {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><circle cx="9" cy="7" r="3"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" strokeLinecap="round"/><path d="M16 3.13a4 4 0 0 1 0 7.75M21 21v-2a4 4 0 0 0-3-3.85" strokeLinecap="round"/></svg>;
-}
-function SdIconGear() {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
-}
-function SdIconHierarchy() {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><path d="M12 2L2 19h20L12 2z" strokeLinejoin="round"/><path d="M12 10v4M10 14h4" strokeLinecap="round"/></svg>;
-}
-function SdIconInterconnect() {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><path d="M5 12h14M15 8l4 4-4 4M9 16l-4-4 4-4" strokeLinecap="round" strokeLinejoin="round"/></svg>;
-}
-function SdIconSchedule() {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round"/><circle cx="12" cy="16" r="2"/></svg>;
-}
-function SdIconBundle() {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2M12 12v4M10 14h4" strokeLinecap="round"/></svg>;
-}
-function SdIconUrgency() {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5" strokeLinecap="round"/><circle cx="12" cy="16" r="0.5" fill="#0E1B3D"/></svg>;
-}
-function SdIconLimitation() {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E1B3D" strokeWidth="1.6"><circle cx="12" cy="12" r="9"/><path d="M8 12h8" strokeLinecap="round"/></svg>;
-}
+// ─── Service Detail Icons — base64 data URLs (Figma Make compatible) ──────────
+const SD_ICONS = {
+  channel:      'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwRTFCM0QiIHN0cm9rZS13aWR0aD0iMS42Ij48cmVjdCB4PSIyIiB5PSIzIiB3aWR0aD0iMjAiIGhlaWdodD0iMTQiIHJ4PSIyIi8+PHBhdGggZD0iTTggMjFoOE0xMiAxN3Y0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=',
+  clock:        'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwRTFCM0QiIHN0cm9rZS13aWR0aD0iMS42Ij48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSI5Ii8+PHBhdGggZD0iTTEyIDd2NWwzIDMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==',
+  relationship: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwRTFCM0QiIHN0cm9rZS13aWR0aD0iMS42Ij48cGF0aCBkPSJNNyAxNmwtNC00IDQtNE0xNyA4bDQgNC00IDRNMTQgNGwtNCAxNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+',
+  category:     'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwRTFCM0QiIHN0cm9rZS13aWR0aD0iMS42Ij48Y2lyY2xlIGN4PSI5IiBjeT0iNyIgcj0iMyIvPjxwYXRoIGQ9Ik0zIDIxdi0yYTQgNCAwIDAgMSA0LTRoNGE0IDQgMCAwIDEgNCA0djIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwYXRoIGQ9Ik0xNiAzLjEzYTQgNCAwIDAgMSAwIDcuNzVNMjEgMjF2LTJhNCA0IDAgMCAwLTMtMy44NSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+',
+  gear:         'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwRTFCM0QiIHN0cm9rZS13aWR0aD0iMS42Ij48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIzIi8+PHBhdGggZD0iTTE5LjQgMTVhMS42NSAxLjY1IDAgMCAwIC4zMyAxLjgybC4wNi4wNmEyIDIgMCAwIDEtMi44MyAyLjgzbC0uMDYtLjA2YTEuNjUgMS42NSAwIDAgMC0xLjgyLS4zMyAxLjY1IDEuNjUgMCAwIDAtMSAxLjUxVjIxYTIgMiAwIDAgMS00IDB2LS4wOUExLjY1IDEuNjUgMCAwIDAgOSAxOS40YTEuNjUgMS42NSAwIDAgMC0xLjgyLjMzbC0uMDYuMDZhMiAyIDAgMCAxLTIuODMtMi44M2wuMDYtLjA2QTEuNjUgMS42NSAwIDAgMCA0LjY4IDE1YTEuNjUgMS42NSAwIDAgMC0xLjUxLTFIM2EyIDIgMCAwIDEgMC00aC4wOUExLjY1IDEuNjUgMCAwIDAgNC42IDlhMS42NSAxLjY1IDAgMCAwLS4zMy0xLjgybC0uMDYtLjA2YTIgMiAwIDAgMSAyLjgzLTIuODNsLjA2LjA2QTEuNjUgMS42NSAwIDAgMCA5IDQuNjhhMS42NSAxLjY1IDAgMCAwIDEtMS41MVYzYTIgMiAwIDAgMSA0IDB2LjA5YTEuNjUgMS42NSAwIDAgMCAxIDEuNTEgMS42NSAxLjY1IDAgMCAwIDEuODItLjMzbC4wNi0uMDZhMiAyIDAgMCAxIDIuODMgMi44M2wtLjA2LjA2QTEuNjUgMS42NSAwIDAgMCAxOS40IDlhMS42NSAxLjY1IDAgMCAwIDEuNTEgMUgyMWEyIDIgMCAwIDEgMCA0aC0uMDlhMS42NSAxLjY1IDAgMCAwLTEuNTEgMXoiLz48L3N2Zz4=',
+  hierarchy:    'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwRTFCM0QiIHN0cm9rZS13aWR0aD0iMS42Ij48cGF0aCBkPSJNMTIgMkwyIDE5aDIwTDEyIDJ6IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHBhdGggZD0iTTEyIDEwdjRNMTAgMTRoNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+',
+  interconnect: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwRTFCM0QiIHN0cm9rZS13aWR0aD0iMS42Ij48cGF0aCBkPSJNNSAxMmgxNE0xNSA4bDQgNC00IDRNOSAxNmwtNC00IDQtNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+',
+  schedule:     'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwRTFCM0QiIHN0cm9rZS13aWR0aD0iMS42Ij48cmVjdCB4PSIzIiB5PSI0IiB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHJ4PSIyIi8+PHBhdGggZD0iTTE2IDJ2NE04IDJ2NE0zIDEwaDE4IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjE2IiByPSIyIi8+PC9zdmc+',
+  bundle:       'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwRTFCM0QiIHN0cm9rZS13aWR0aD0iMS42Ij48cmVjdCB4PSIyIiB5PSI3IiB3aWR0aD0iMjAiIGhlaWdodD0iMTQiIHJ4PSIyIi8+PHBhdGggZD0iTTE2IDdWNWEyIDIgMCAwIDAtMi0yaC00YTIgMiAwIDAgMC0yIDJ2Mk0xMiAxMnY0TTEwIDE0aDQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==',
+  urgency:      'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwRTFCM0QiIHN0cm9rZS13aWR0aD0iMS42Ij48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSI5Ii8+PHBhdGggZD0iTTEyIDd2NSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGNpcmNsZSBjeD0iMTIiIGN5PSIxNiIgcj0iMC41IiBmaWxsPSIjMEUxQjNEIi8+PC9zdmc+',
+  limitation:   'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwRTFCM0QiIHN0cm9rZS13aWR0aD0iMS42Ij48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSI5Ii8+PHBhdGggZD0iTTggMTJoOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+',
+};
 
-function ServiceDetailItem({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+function ServiceDetailItem({ icon, label, children }: { icon: string; label: string; children: React.ReactNode }) {
   return (
     <div className="dc-sd-item">
       <div className="dc-sd-item__header">
-        <span className="dc-sd-item__icon">{icon}</span>
+        <img src={icon} width={22} height={22} alt="" className="dc-sd-item__icon" />
         <span className="dc-sd-item__label">{label}</span>
       </div>
       <div className="dc-sd-item__value">{children}</div>
@@ -891,44 +871,44 @@ function InfoPage({ service, navigate }: { service: ServiceDef; navigate: (page:
             {/* Service Details accordion — 5-column grid matching Figma */}
             <Accordion title="Service Details" defaultOpen>
               <div className="dc-sd-grid">
-                <ServiceDetailItem icon={<SdIconChannel />} label="Service Delivery Channel">
+                <ServiceDetailItem icon={SD_ICONS.channel} label="Service Delivery Channel">
                   <ul className="dc-sd-list">
                     {service.deliveryChannels.map(c => <li key={c}>{c}</li>)}
                   </ul>
                 </ServiceDetailItem>
-                <ServiceDetailItem icon={<SdIconClock />} label="Service Completion Time">
+                <ServiceDetailItem icon={SD_ICONS.clock} label="Service Completion Time">
                   <ul className="dc-sd-list"><li>{service.completionTime}</li></ul>
                 </ServiceDetailItem>
-                <ServiceDetailItem icon={<SdIconRelationship />} label="Relationship Type">
+                <ServiceDetailItem icon={SD_ICONS.relationship} label="Relationship Type">
                   <ul className="dc-sd-list">
                     {service.relationshipType.map(r => <li key={r}>{r}</li>)}
                   </ul>
                 </ServiceDetailItem>
-                <ServiceDetailItem icon={<SdIconCategory />} label="Target Category">
+                <ServiceDetailItem icon={SD_ICONS.category} label="Target Category">
                   <ul className="dc-sd-list"><li>{service.targetCategory}</li></ul>
                 </ServiceDetailItem>
-                <ServiceDetailItem icon={<SdIconGear />} label="Service Type">
+                <ServiceDetailItem icon={SD_ICONS.gear} label="Service Type">
                   <ul className="dc-sd-list"><li>{service.serviceType}</li></ul>
                 </ServiceDetailItem>
-                <ServiceDetailItem icon={<SdIconHierarchy />} label="Service Hierarchy">
+                <ServiceDetailItem icon={SD_ICONS.hierarchy} label="Service Hierarchy">
                   <ul className="dc-sd-list"><li>{service.serviceHierarchy}</li></ul>
                 </ServiceDetailItem>
-                <ServiceDetailItem icon={<SdIconInterconnect />} label="Service Interconnection">
+                <ServiceDetailItem icon={SD_ICONS.interconnect} label="Service Interconnection">
                   <ul className="dc-sd-list"><li>N/A</li></ul>
                 </ServiceDetailItem>
-                <ServiceDetailItem icon={<SdIconSchedule />} label="Service Delivery Time">
+                <ServiceDetailItem icon={SD_ICONS.schedule} label="Service Delivery Time">
                   <ul className="dc-sd-list">
                     <li>Available around the clock (Online and Mobile Web)</li>
                     <li>Refer to <a href="#" style={{ color: '#1360D2' }}>customer happiness centers</a> working hours (Center)</li>
                   </ul>
                 </ServiceDetailItem>
-                <ServiceDetailItem icon={<SdIconBundle />} label="Bundle">
+                <ServiceDetailItem icon={SD_ICONS.bundle} label="Bundle">
                   <ul className="dc-sd-list"><li>N/A</li></ul>
                 </ServiceDetailItem>
-                <ServiceDetailItem icon={<SdIconUrgency />} label="Service Urgency:">
+                <ServiceDetailItem icon={SD_ICONS.urgency} label="Service Urgency:">
                   <ul className="dc-sd-list"><li>N/A</li></ul>
                 </ServiceDetailItem>
-                <ServiceDetailItem icon={<SdIconLimitation />} label="Service Limitation:">
+                <ServiceDetailItem icon={SD_ICONS.limitation} label="Service Limitation:">
                   <ul className="dc-sd-list"><li>N/A</li></ul>
                 </ServiceDetailItem>
               </div>
