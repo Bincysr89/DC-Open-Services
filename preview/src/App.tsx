@@ -602,7 +602,9 @@ function FileUploadRow() {
               <img src={fileType} width="28" height="28" alt="file" className="dc-file-type-icon" />
               <span className="dc-file-input-text">{file}</span>
               <div className="dc-file-input-trail">
-                <button className="dc-file-tag__remove" onClick={() => removeFile(idx)} title="Remove file">×</button>
+                <button className="dc-file-tag__remove" onClick={() => removeFile(idx)} title="Remove file">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7H6V19ZM8 9H16V19H8V9ZM15.5 4L14.5 3H9.5L8.5 4H5V6H19V4H15.5Z" fill="#DC3545"/></svg>
+                </button>
               </div>
             </div>
           ))}
