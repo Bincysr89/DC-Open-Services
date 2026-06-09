@@ -603,7 +603,7 @@ function FileUploadRow() {
               <span className="dc-file-input-text">{file}</span>
               <div className="dc-file-input-trail">
                 <button className="dc-file-tag__remove" onClick={() => removeFile(idx)} title="Remove file">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7H6V19ZM8 9H16V19H8V9ZM15.5 4L14.5 3H9.5L8.5 4H5V6H19V4H15.5Z" fill="#DC3545"/></svg>
+                  <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNiAxOUM2IDIwLjEgNi45IDIxIDggMjFIMTZDMTcuMSAyMSAxOCAyMC4xIDE4IDE5VjdINlYxOVpNOCA5SDE2VjE5SDhWOVpNMTUuNSA0TDE0LjUgM0g5LjVMOC41IDRINVY2SDE5VjRIMTUuNVoiIGZpbGw9IiNEQzM1NDUiLz48L3N2Zz4=" width="20" height="20" alt="Remove" />
                 </button>
               </div>
             </div>
