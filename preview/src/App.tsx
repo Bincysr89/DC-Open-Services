@@ -25,7 +25,7 @@ type Page =
   | { name: 'home' }
   | { name: 'info'; serviceId: string }
   | { name: 'form'; serviceId: string }
-  | { name: 'success'; serviceId: string };
+  | { name: 'success'; serviceId: string; activePayBillsTab?: string };
 
 // ─── Icons (inline SVG) ───────────────────────────────────────────────────────
 function SearchIcon() {
@@ -50,13 +50,19 @@ function ChevronUp() {
 function LockIcon() {
   return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
 }
-function InfoIcon() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>;
+function InfoIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}>
+      <path d="M9.9974 13.3327V9.99935M9.9974 6.66602H10.0057M18.3307 9.99935C18.3307 14.6017 14.5998 18.3327 9.9974 18.3327C5.39502 18.3327 1.66406 14.6017 1.66406 9.99935C1.66406 5.39698 5.39502 1.66602 9.9974 1.66602C14.5998 1.66602 18.3307 5.39698 18.3307 9.99935Z" stroke="#5E6B7A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
 }
 function InfoTooltip({ tip }: { tip: string }) {
   return (
     <div className="dc-field-hint">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5E6B7A" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}>
+        <path d="M9.9974 13.3327V9.99935M9.9974 6.66602H10.0057M18.3307 9.99935C18.3307 14.6017 14.5998 18.3327 9.9974 18.3327C5.39502 18.3327 1.66406 14.6017 1.66406 9.99935C1.66406 5.39698 5.39502 1.66602 9.9974 1.66602C14.5998 1.66602 18.3307 5.39698 18.3307 9.99935Z" stroke="#5E6B7A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
       <span>{tip}</span>
     </div>
   );
@@ -574,50 +580,51 @@ function EmailVerifyModal({ email, onVerify, onClose }: {
 }
 
 // ─── File Upload ──────────────────────────────────────────────────────────────
-function FileUploadRow({ label, hasFile }: { label?: string; hasFile?: boolean }) {
+function FileUploadRow() {
   const ref = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState<string | null>(hasFile ? 'File name.pptx' : null);
+  const [files, setFiles] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
-    const f = e.dataTransfer.files[0];
-    if (f) setFile(f.name);
+  const addFiles = (newFiles: FileList) => {
+    setFiles(prev => [...prev, ...Array.from(newFiles).map(f => f.name)]);
   };
 
-  if (file) {
-    return (
-      <div className="dc-file-row">
-        <div className="dc-file-input-wrap">
-          <img src={fileType} width="28" height="28" alt="file" className="dc-file-type-icon" />
-          <span className="dc-file-input-text">{file}</span>
-          <div className="dc-file-input-trail">
-            <button className="dc-file-tag__remove" onClick={() => setFile(null)}>×</button>
-          </div>
-        </div>
-        <input ref={ref} type="file" style={{ display: 'none' }} onChange={(e) => { if (e.target.files?.[0]) setFile(e.target.files[0].name); }} />
-      </div>
-    );
-  }
+  const removeFile = (idx: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== idx));
+  };
 
   return (
-    <div
-      className={`dc-dropzone${dragging ? ' dc-dropzone--active' : ''}`}
-      onDragOver={e => { e.preventDefault(); setDragging(true); }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={handleDrop}
-    >
-      <div className="dc-dropzone__icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.8">
-          <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
-          <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
-        </svg>
+    <div>
+      {files.length > 0 && (
+        <div className="dc-file-grid">
+          {files.map((file, idx) => (
+            <div key={idx} className="dc-file-input-wrap">
+              <img src={fileType} width="28" height="28" alt="file" className="dc-file-type-icon" />
+              <span className="dc-file-input-text">{file}</span>
+              <div className="dc-file-input-trail">
+                <button className="dc-file-tag__remove" onClick={() => removeFile(idx)} title="Remove file">×</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div
+        className={`dc-dropzone${dragging ? ' dc-dropzone--active' : ''}`}
+        onDragOver={e => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={e => { e.preventDefault(); setDragging(false); if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); }}
+      >
+        <div className="dc-dropzone__icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.8">
+            <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+          </svg>
+        </div>
+        <span className="dc-dropzone__text">Drag and drop files here</span>
+        <span className="dc-dropzone__or">-Or-</span>
+        <button className="dc-dropzone__browse" onClick={() => ref.current?.click()}>Browse File</button>
+        <input ref={ref} type="file" multiple style={{ display: 'none' }} onChange={e => { if (e.target.files?.length) { addFiles(e.target.files); e.target.value = ''; } }} />
       </div>
-      <span className="dc-dropzone__text">Drag and drop files here</span>
-      <span className="dc-dropzone__or">-Or-</span>
-      <button className="dc-dropzone__browse" onClick={() => ref.current?.click()}>Browse File</button>
-      <input ref={ref} type="file" style={{ display: 'none' }} onChange={(e) => { if (e.target.files?.[0]) setFile(e.target.files[0].name); }} />
     </div>
   );
 }
@@ -636,24 +643,62 @@ function FormField({ label, required, children, className }: {
 
 // ─── Success Banner ───────────────────────────────────────────────────────────
 const COUNTRY_CODES = [
-  { flag: '🇦🇪', code: '+971' }, { flag: '🇺🇸', code: '+1' }, { flag: '🇬🇧', code: '+44' },
-  { flag: '🇮🇳', code: '+91' }, { flag: '🇸🇦', code: '+966' }, { flag: '🇶🇦', code: '+974' },
-  { flag: '🇰🇼', code: '+965' }, { flag: '🇴🇲', code: '+968' }, { flag: '🇧🇭', code: '+973' },
+  { flag: '🇦🇪', name: 'UAE', code: '+971' },
+  { flag: '🇺🇸', name: 'USA', code: '+1' },
+  { flag: '🇬🇧', name: 'UK', code: '+44' },
+  { flag: '🇮🇳', name: 'India', code: '+91' },
+  { flag: '🇸🇦', name: 'Saudi Arabia', code: '+966' },
+  { flag: '🇶🇦', name: 'Qatar', code: '+974' },
+  { flag: '🇰🇼', name: 'Kuwait', code: '+965' },
+  { flag: '🇴🇲', name: 'Oman', code: '+968' },
+  { flag: '🇧🇭', name: 'Bahrain', code: '+973' },
 ];
+
+function CountryDropdown({ selected, onChange }: { selected: string; onChange: (code: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const current = COUNTRY_CODES.find(c => c.code === selected) || COUNTRY_CODES[0];
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div className="dc-country-dropdown" ref={ref}>
+      <button type="button" className="dc-country-dropdown__trigger" onClick={() => setOpen(o => !o)}>
+        <span>{current.flag} {current.code}</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      {open && (
+        <div className="dc-country-dropdown__menu">
+          {COUNTRY_CODES.map(c => (
+            <div
+              key={c.code}
+              className={`dc-country-dropdown__option${c.code === selected ? ' dc-country-dropdown__option--active' : ''}`}
+              onClick={() => { onChange(c.code); setOpen(false); }}
+            >
+              {c.flag} {c.name} {c.code}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function PhoneField({ label, required, value, onChange, tooltip }: {
   label: string; required?: boolean; value: string; onChange: (v: string) => void; tooltip?: string;
 }) {
+  const [countryCode, setCountryCode] = useState('+971');
   return (
     <div className="dc-float-wrapper dc-field--half">
       <div className="dc-float-field">
         <div className="dc-phone-float">
-          <div className="dc-country-select">
-            <select className="dc-country-select__input">
-              {COUNTRY_CODES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
-            </select>
-            <svg className="dc-country-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
-          </div>
+          <CountryDropdown selected={countryCode} onChange={setCountryCode} />
           <input className="dc-float-input dc-float-input--phone" placeholder=" " value={value} onChange={e => onChange(e.target.value)} />
         </div>
         <label className="dc-float-label dc-float-label--phone">{label}{required && <span className="dc-req"> *</span>}</label>
@@ -664,8 +709,6 @@ function PhoneField({ label, required, value, onChange, tooltip }: {
 }
 
 function SuccessAlert({ refNo, inProcess }: { refNo: string; inProcess?: boolean }) {
-  const [visible, setVisible] = useState(true);
-  if (!visible) return null;
   return (
     <div className="dc-success-alert">
       <div className="dc-success-alert__left">
@@ -681,7 +724,6 @@ function SuccessAlert({ refNo, inProcess }: { refNo: string; inProcess?: boolean
           )}
         </div>
       </div>
-      <button className="dc-success-alert__close" onClick={() => setVisible(false)}>×</button>
     </div>
   );
 }
@@ -1118,7 +1160,7 @@ function ServiceFormPage({ service, navigate }: { service: ServiceDef; navigate:
         </div>
 
         {activeTab === 'new' && <NewForm service={service} navigate={navigate} />}
-        {(activeTab === 'amend' || activeTab === 'cancel') && <AmendCancelForm service={service} tabName={activeTab} navigate={navigate} />}
+        {(activeTab === 'amend' || activeTab === 'cancel') && <AmendCancelForm key={activeTab} service={service} tabName={activeTab} navigate={navigate} />}
         {activeTab === 'enquiry' && <EnquiryForm service={service} navigate={navigate} />}
       </div>
     </>
@@ -1198,7 +1240,9 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
   const [emailVerified, setEmailVerified] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [phone, setPhone] = useState('');
+  const [phoneCountry, setPhoneCountry] = useState('+971');
   const [mobile, setMobile] = useState('');
+  const [mobileCountry, setMobileCountry] = useState('+971');
   const [desc, setDesc] = useState('');
   const [subject, setSubject] = useState('');
   const [certServiceType, setCertServiceType] = useState('');
@@ -1331,7 +1375,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
                 </div>
                 <div className="dc-basic-info-card__body">
                   <span className="dc-basic-info-card__label">Charges</span>
-                  <span className="dc-basic-info-card__value dc-basic-info-card__value--charge">{service.charges} <small>AED</small></span>
+                  <span className="dc-basic-info-card__value dc-basic-info-card__value--charge">AED {service.charges}</span>
                 </div>
               </div>
             )}
@@ -1384,7 +1428,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
                     </div>
                     <div className="dc-basic-info-card__body">
                       <span className="dc-basic-info-card__label">Charges</span>
-                      <span className="dc-basic-info-card__value dc-basic-info-card__value--charge">{selectedCert.fees} <small>AED</small></span>
+                      <span className="dc-basic-info-card__value dc-basic-info-card__value--charge">AED {selectedCert.fees}</span>
                     </div>
                   </div>
                 )}
@@ -1430,7 +1474,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
                     </div>
                     <div className="dc-basic-info-card__body">
                       <span className="dc-basic-info-card__label">Charges</span>
-                      <span className="dc-basic-info-card__value dc-basic-info-card__value--charge">2,000 <small>AED</small></span>
+                      <span className="dc-basic-info-card__value dc-basic-info-card__value--charge">AED 2,000</span>
                     </div>
                   </div>
                 )}
@@ -1637,20 +1681,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
           <div className="dc-float-wrapper dc-field--half">
             <div className="dc-float-field">
               <div className="dc-phone-float">
-                <div className="dc-country-select">
-                  <select className="dc-country-select__input">
-                    <option value="+971">🇦🇪 +971</option>
-                    <option value="+1">🇺🇸 +1</option>
-                    <option value="+44">🇬🇧 +44</option>
-                    <option value="+91">🇮🇳 +91</option>
-                    <option value="+966">🇸🇦 +966</option>
-                    <option value="+974">🇶🇦 +974</option>
-                    <option value="+965">🇰🇼 +965</option>
-                    <option value="+968">🇴🇲 +968</option>
-                    <option value="+973">🇧🇭 +973</option>
-                  </select>
-                  <svg className="dc-country-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
-                </div>
+                <CountryDropdown selected={phoneCountry} onChange={setPhoneCountry} />
                 <input className="dc-float-input dc-float-input--phone" placeholder=" " value={phone} onChange={e => setPhone(e.target.value)} />
               </div>
               <label className="dc-float-label dc-float-label--phone">Phone</label>
@@ -1660,20 +1691,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
           <div className="dc-float-wrapper dc-field--half">
             <div className="dc-float-field">
               <div className="dc-phone-float">
-                <div className="dc-country-select">
-                  <select className="dc-country-select__input">
-                    <option value="+971">🇦🇪 +971</option>
-                    <option value="+1">🇺🇸 +1</option>
-                    <option value="+44">🇬🇧 +44</option>
-                    <option value="+91">🇮🇳 +91</option>
-                    <option value="+966">🇸🇦 +966</option>
-                    <option value="+974">🇶🇦 +974</option>
-                    <option value="+965">🇰🇼 +965</option>
-                    <option value="+968">🇴🇲 +968</option>
-                    <option value="+973">🇧🇭 +973</option>
-                  </select>
-                  <svg className="dc-country-select__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
-                </div>
+                <CountryDropdown selected={mobileCountry} onChange={setMobileCountry} />
                 <input className="dc-float-input dc-float-input--phone" placeholder=" " value={mobile} onChange={e => setMobile(e.target.value)} />
               </div>
               <label className="dc-float-label dc-float-label--phone">Mobile</label>
@@ -1801,7 +1819,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
         <h4 className="dc-form-section__heading">Attachments</h4>
         <div className="dc-attachments">
           <div className="dc-field-hint" style={{marginBottom: '12px', marginTop: 0}}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5E6B7A" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}><path d="M9.9974 13.3327V9.99935M9.9974 6.66602H10.0057M18.3307 9.99935C18.3307 14.6017 14.5998 18.3327 9.9974 18.3327C5.39502 18.3327 1.66406 14.6017 1.66406 9.99935C1.66406 5.39698 5.39502 1.66602 9.9974 1.66602C14.5998 1.66602 18.3307 5.39698 18.3307 9.99935Z" stroke="#5E6B7A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             <span>Only .rtf .doc .docx .pdf .jpg .jpeg .gif .png .bmp .tiff is allowed, maximum 5MB per file</span>
           </div>
           <FileUploadRow />
@@ -1832,13 +1850,65 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
 }
 
 // ─── AMEND / CANCEL TAB ───────────────────────────────────────────────────────
-function AmendCancelForm({ service, tabName, navigate }: {
+function AmendCancelForm({ service, tabName, navigate: _navigate }: {
   service: ServiceDef; tabName: 'amend' | 'cancel'; navigate: (page: Page) => void;
 }) {
   const [reqNo, setReqNo] = useState('');
   const [email, setEmail] = useState('');
   const [comments, setComments] = useState('');
   const [captcha, setCaptcha] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [bannerVisible, setBannerVisible] = useState(true);
+
+  const SUBMITTED_REQ_NO = 'R02412-83605';
+  const SUBMITTED_TICKET_NO = '2026060910000021';
+  const SUBMITTED_DATE = '2026-06-09 00:54:56.0';
+
+  if (submitted) {
+    return (
+      <div className="dc-form-card">
+        <div className="dc-form-section dc-amend-confirm">
+          {/* Green check icon */}
+          <div className="dc-amend-confirm__icon">
+            <svg width="55" height="55" viewBox="0 0 55 55" fill="none">
+              <circle cx="27.5" cy="27.5" r="27.5" fill="#1AAC72"/>
+              <polyline points="16,28 24,36 40,20" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          {/* Success message */}
+          <p className="dc-amend-confirm__msg">
+            Thank you for contacting us! We appreciate your taking the time to contact us. We will get back to you within 1 hour.
+          </p>
+          {/* Date/time */}
+          <p className="dc-amend-confirm__date">Request Date &amp; Time {SUBMITTED_DATE}</p>
+          <p className="dc-amend-confirm__print">Please print this page for future reference.</p>
+          {/* 4-column result grid */}
+          <div className="dc-amend-confirm__grid">
+            <div className="dc-amend-confirm__col">
+              <span className="dc-amend-confirm__label">Service Type Name</span>
+              <span className="dc-amend-confirm__value">Record Trade Agency</span>
+            </div>
+            <div className="dc-amend-confirm__col">
+              <span className="dc-amend-confirm__label">Request No.</span>
+              <span className="dc-amend-confirm__value">{SUBMITTED_REQ_NO}</span>
+            </div>
+            <div className="dc-amend-confirm__col">
+              <span className="dc-amend-confirm__label">Ticket Number</span>
+              <span className="dc-amend-confirm__value">{SUBMITTED_TICKET_NO}</span>
+            </div>
+            <div className="dc-amend-confirm__col">
+              <span className="dc-amend-confirm__label">Request Status</span>
+              <span className="dc-amend-confirm__value">Payment Received</span>
+            </div>
+          </div>
+        </div>
+        <div className="dc-form-actions dc-form-actions--center dc-no-print" style={{ marginTop: 0 }}>
+          <button className="dc-btn dc-btn--outline" onClick={() => setSubmitted(false)}>Back</button>
+          <button className="dc-btn dc-btn--outline" onClick={() => window.print()}>Print</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dc-form-card">
@@ -1864,12 +1934,11 @@ function AmendCancelForm({ service, tabName, navigate }: {
         </div>
       </div>
       <div className="dc-form-section">
-        {/* Verification */}
         <CaptchaWidget value={captcha} onChange={setCaptcha} />
       </div>
       <div className="dc-form-actions">
         <button className="dc-btn dc-btn--outline" onClick={() => { setReqNo(''); setEmail(''); setComments(''); setCaptcha(''); }}>Reset</button>
-        <button className="dc-btn dc-btn--blue" onClick={() => navigate({ name: 'success', serviceId: service.id })}>Submit</button>
+        <button className="dc-btn dc-btn--blue" onClick={() => setSubmitted(true)}>Submit</button>
       </div>
     </div>
   );
@@ -1926,11 +1995,263 @@ function EnquirySearchBar({ searchType, setSearchType, searchValue, setSearchVal
   );
 }
 
-function EnquiryForm({ service, navigate }: { service: ServiceDef; navigate: (page: Page) => void }) {
+function EnquiryForm({ service, navigate: _navigate }: { service: ServiceDef; navigate: (page: Page) => void }) {
   const [email, setEmail] = useState('');
   const [captcha, setCaptcha] = useState('');
   const [searchType, setSearchType] = useState('Request No.');
   const [searchValue, setSearchValue] = useState('');
+  const [showResults, setShowResults] = useState(false);
+
+  const REF = searchValue || 'R00723-513232';
+  const serviceFee = parseFloat(service.charges) || 0;
+  const knowledgeFee = serviceFee >= 50 ? 20 : 0;
+  const totalFee = serviceFee + knowledgeFee;
+
+  if (showResults) {
+    return (
+      <>
+        {/* Card 1: Status + Request Details */}
+        <div className="dc-form-card dc-no-print">
+          <div className="dc-form-section">
+            <SuccessAlert refNo={REF} inProcess />
+            <div className="dc-success-grid">
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Request Number</span>
+                <span className="dc-success-field__value">{REF}</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Request Status</span>
+                <span className="dc-badge dc-badge--draft">Under Process</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Service</span>
+                <span className="dc-success-field__value">{service.serviceName}</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Service Type</span>
+                <span className="dc-success-field__value">{service.serviceType}</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Name</span>
+                <span className="dc-success-field__value">Testname</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Company</span>
+                <span className="dc-success-field__value">Testcompany</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Contact Person</span>
+                <span className="dc-success-field__value">Test</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Email</span>
+                <span className="dc-success-field__value">{email || 'clasherschenmad@gmail.com'}</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Mobile</span>
+                <span className="dc-success-field__value">00971-50-2298234</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Subject</span>
+                <span className="dc-success-field__value">Test</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">No. of Units</span>
+                <span className="dc-success-field__value">1</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Description</span>
+                <span className="dc-success-field__value">Test</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: Charges Summary */}
+        <div className="dc-form-card dc-no-print">
+          <div className="dc-form-section">
+            <h4 className="dc-form-section__heading">Charges Summary</h4>
+            <div className="dc-success-grid" style={{ marginBottom: 20 }}>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Payment Mode</span>
+                <span className="dc-success-field__value">Credit Card</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Payment Status</span>
+                <span className="dc-success-field__value">Success</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Receipt No.</span>
+                <span className="dc-success-field__value">Z-12323</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Payment Reference No.</span>
+                <span className="dc-success-field__value">5900080808</span>
+              </div>
+            </div>
+            <hr className="dc-success-divider" style={{ margin: '0 0 20px' }} />
+            <table className="dc-charges__table">
+              <thead>
+                <tr><th>Charge</th><th>Amount</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{service.serviceName} Fee</td>
+                  <td><DirhamIcon />{serviceFee.toFixed(1)}</td>
+                </tr>
+                {knowledgeFee > 0 && (
+                  <tr>
+                    <td>Knowledge-Innovation Dirhams</td>
+                    <td><DirhamIcon />{knowledgeFee.toFixed(1)}</td>
+                  </tr>
+                )}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td><strong>Total Amount</strong></td>
+                  <td><DirhamIcon /><strong>{totalFee.toFixed(1)}</strong></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        {/* Card 3: Transaction History */}
+        <div className="dc-form-card dc-no-print">
+          <div className="dc-result-txn-card">
+            <div className="dc-result-txn-card__header">Transaction History</div>
+            <div className="dc-result-txn-card__body">
+              <div className="dc-success-grid">
+                <div className="dc-success-field">
+                  <span className="dc-success-field__label">Initiated By</span>
+                  <span className="dc-success-field__value">test</span>
+                </div>
+                <div className="dc-success-field">
+                  <span className="dc-success-field__label">Request No.</span>
+                  <span className="dc-success-field__value">R02015-83581</span>
+                </div>
+                <div className="dc-success-field">
+                  <span className="dc-success-field__label">Amount</span>
+                  <span className="dc-success-field__value">{totalFee.toFixed(2)}</span>
+                </div>
+                <div className="dc-success-field">
+                  <span className="dc-success-field__label">Transaction Status</span>
+                  <span className="dc-success-field__value">Success</span>
+                </div>
+                <div className="dc-success-field">
+                  <span className="dc-success-field__label">DEG Transaction No</span>
+                  <span className="dc-success-field__value">590000237140228</span>
+                </div>
+                <div className="dc-success-field">
+                  <span className="dc-success-field__label">Transaction Date</span>
+                  <span className="dc-success-field__value">Fri May 15 00:00:00 GST 2026</span>
+                </div>
+                <div className="dc-success-field">
+                  <span className="dc-success-field__label">Payment Status</span>
+                  <span className="dc-success-field__value">Success</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="dc-form-actions dc-form-actions--center dc-no-print" style={{ marginTop: 8 }}>
+          <button className="dc-btn dc-btn--outline" onClick={() => setShowResults(false)}>Back</button>
+          <button className="dc-btn dc-btn--outline" onClick={() => window.print()}>Print</button>
+        </div>
+
+        {/* Print-only section */}
+        <div className="dc-print-only">
+          <div className="dc-print-block">
+            <div className="dc-print-inprocess-banner">Request is under process.</div>
+            <div className="dc-success-grid">
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Request Number</span>
+                <span className="dc-success-field__value">{REF}</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Request Status</span>
+                <span className="dc-success-field__value">Under Process</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Ticket Number</span>
+                <span className="dc-success-field__value">2026060910000021</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Service</span>
+                <span className="dc-success-field__value">{service.serviceName}</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Service Type</span>
+                <span className="dc-success-field__value">{service.serviceType}</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Name</span>
+                <span className="dc-success-field__value">Testname</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Company</span>
+                <span className="dc-success-field__value">Testcompany</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Contact Person</span>
+                <span className="dc-success-field__value">Test</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Email</span>
+                <span className="dc-success-field__value">{email || 'clasherschenmad@gmail.com'}</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Mobile</span>
+                <span className="dc-success-field__value">00971-50-2298234</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Subject</span>
+                <span className="dc-success-field__value">Test</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">No. of Units</span>
+                <span className="dc-success-field__value">1</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Description</span>
+                <span className="dc-success-field__value">Test</span>
+              </div>
+            </div>
+          </div>
+          <div className="dc-print-block" style={{ marginTop: 24 }}>
+            <h4 className="dc-print-charges-title">Charges Summary</h4>
+            <div className="dc-success-grid" style={{ margin: '12px 0 16px' }}>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Payment Mode</span>
+                <span className="dc-success-field__value">Credit Card</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Payment Status</span>
+                <span className="dc-success-field__value">Success</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Receipt No.</span>
+                <span className="dc-success-field__value">Z-12323</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Payment Reference No.</span>
+                <span className="dc-success-field__value">5900080808</span>
+              </div>
+            </div>
+            <table className="dc-print-charges-table">
+              <thead><tr><th>Charge</th><th>Amount</th></tr></thead>
+              <tbody>
+                <tr><td>{service.serviceName} Fee</td><td>Ð {serviceFee.toFixed(1)}</td></tr>
+                {knowledgeFee > 0 && <tr><td>Knowledge-Innovation Dirhams</td><td>Ð {knowledgeFee.toFixed(1)}</td></tr>}
+              </tbody>
+              <tfoot><tr><td><strong>Total Amount</strong></td><td><strong>Ð {totalFee.toFixed(1)}</strong></td></tr></tfoot>
+            </table>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <div className="dc-form-card">
@@ -1947,12 +2268,11 @@ function EnquiryForm({ service, navigate }: { service: ServiceDef; navigate: (pa
         </div>
       </div>
       <div className="dc-form-section">
-        {/* Verification */}
         <CaptchaWidget value={captcha} onChange={setCaptcha} />
       </div>
       <div className="dc-form-actions">
-        <button className="dc-btn dc-btn--outline" onClick={() => { setSearchValue(''); setEmail(''); setCaptcha(''); }}>Reset</button>
-        <button className="dc-btn dc-btn--primary" onClick={() => navigate({ name: 'success', serviceId: service.id })}>Show</button>
+        <button className="dc-btn dc-btn--outline" onClick={() => { setSearchValue(''); setEmail(''); setCaptcha(''); setShowResults(false); }}>Reset</button>
+        <button className="dc-btn dc-btn--primary" onClick={() => setShowResults(true)}>Show</button>
       </div>
     </div>
   );
@@ -2060,8 +2380,8 @@ const TRACK_SERVICE_TYPES: Record<string, { description: string; reqLabel: strin
     reqLabel: 'Request Number',
     validationLabel: 'Trade License Number',
   },
-  'Request Payment by Instalments': {
-    description: 'This service allows you to track the status of your request for payment by instalments with Dubai Customs.',
+  'Request Payment by Installments': {
+    description: 'This service allows you to track the status of your request for payment by installments with Dubai Customs.',
     reqLabel: 'Request Number',
     validationLabel: 'Trade License Number',
   },
@@ -2163,7 +2483,7 @@ function TrackStatusForm({ service, navigate }: { service: ServiceDef; navigate:
 
 // ─── PAY BILLS FORM ───────────────────────────────────────────────────────────
 function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (page: Page) => void }) {
-  const [activeTab, setActiveTab] = useState<'bills' | 'topup' | 'miscellaneous' | 'instalments' | 'enquiry'>('bills');
+  const [activeTab, setActiveTab] = useState<'bills' | 'topup' | 'miscellaneous' | 'installments' | 'enquiry'>('bills');
 
   // Bills state
   const [invoiceType, setInvoiceType] = useState('');
@@ -2268,7 +2588,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
     { id: 'bills', label: 'Bills' },
     { id: 'topup', label: 'Top Up' },
     { id: 'miscellaneous', label: 'Miscellaneous' },
-    { id: 'instalments', label: 'Instalments' },
+    { id: 'installments', label: 'Installments' },
   ] as const;
 
   return (
@@ -2433,7 +2753,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
                 {/* ── Payment Transaction Details Modal (after confirm) ── */}
                 {showBillTxnModal && (
                   <div className="dc-modal-overlay">
-                    <div style={{ background: '#fff', borderRadius: 8, overflow: 'hidden', width: '90vw', maxWidth: 860, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+                    <div style={{ background: '#fff', borderRadius: 8, overflow: 'hidden', width: '95vw', maxWidth: 1150, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
 
                       {/* ── Header — Figma dark navy #0E1B3D ── */}
                       <div style={{ background: '#0e1b3d', padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -2861,7 +3181,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
 
               {showTopupTxnModal && (
                 <div className="dc-modal-overlay">
-                  <div style={{ background: '#fff', borderRadius: 8, overflow: 'hidden', width: '90vw', maxWidth: 860, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+                  <div style={{ background: '#fff', borderRadius: 8, overflow: 'hidden', width: '95vw', maxWidth: 1150, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
                     <div style={{ background: '#0e1b3d', padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: 18, fontWeight: 600, color: '#f8fafd', letterSpacing: '0.01em' }}>Payment Transaction Details</span>
                       <button onClick={() => setShowTopupTxnModal(false)}
@@ -3121,7 +3441,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
                       </div>
                       <div className="dc-basic-info-card__body">
                         <span className="dc-basic-info-card__label">Charges</span>
-                        <span className="dc-basic-info-card__value dc-basic-info-card__value--charge">{selectedMiscType.charges} <small>AED</small></span>
+                        <span className="dc-basic-info-card__value dc-basic-info-card__value--charge">AED {selectedMiscType.charges}</span>
                       </div>
                     </div>
                   )}
@@ -3266,14 +3586,14 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
             </div>
             <div className="dc-form-actions">
               <button className="dc-btn dc-btn--outline" onClick={() => { setMiscServiceType(''); setMiscUnits(''); setMiscBusinessCode(''); setMiscNumCerts(''); setMiscDeclNumber(''); setMiscDeclFocused(false); setMiscCompany(''); setMiscName(''); setMiscContact(''); setMiscEmail(''); setMiscEmailVerified(false); setMiscPhone(''); setMiscMobile(''); setMiscSubject(''); setMiscDesc(''); setMiscCaptcha(''); }}>Reset</button>
-              <button className="dc-btn dc-btn--blue" onClick={() => navigate({ name: 'success', serviceId: service.id })}>Submit</button>
+              <button className="dc-btn dc-btn--blue" onClick={() => navigate({ name: 'success', serviceId: service.id, activePayBillsTab: 'Miscellaneous' })}>Submit</button>
             </div>
             {miscShowVerify && <EmailVerifyModal email={miscEmail} onVerify={() => setMiscEmailVerified(true)} onClose={() => setMiscShowVerify(false)} />}
           </div>
         )}
 
         {/* ── INSTALMENTS ── */}
-        {activeTab === 'instalments' && (
+        {activeTab === 'installments' && (
           <div className="dc-form-card">
             <div className="dc-form-section dc-basic-info-section">
               <div className="dc-basic-info-header">
@@ -3288,7 +3608,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
                     </div>
                     <div className="dc-basic-info-card__body">
                       <span className="dc-basic-info-card__label">Service Name</span>
-                      <span className="dc-basic-info-card__value">Request Payment by Instalments</span>
+                      <span className="dc-basic-info-card__value">Request Payment by Installments</span>
                     </div>
                   </div>
                 </div>
@@ -3309,7 +3629,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
                     </div>
                     <div className="dc-basic-info-card__body">
                       <span className="dc-basic-info-card__label">Requirements</span>
-                      <span className="dc-basic-info-card__value">1. Request Letter for Payment by Instalments</span>
+                      <span className="dc-basic-info-card__value">1. Request Letter for Payment by Installments</span>
                     </div>
                   </div>
                 </div>
@@ -3405,7 +3725,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
 
             <div className="dc-form-actions">
               <button className="dc-btn dc-btn--outline" onClick={() => { setInstBusinessCode(''); setInstName(''); setInstCompany(''); setInstContact(''); setInstEmail(''); setInstEmailVerified(false); setInstPhone(''); setInstMobile(''); setInstSubject(''); setInstDesc(''); setInstCaptcha(''); }}>Reset</button>
-              <button className="dc-btn dc-btn--blue" onClick={() => navigate({ name: 'success', serviceId: service.id })}>Submit</button>
+              <button className="dc-btn dc-btn--blue" onClick={() => navigate({ name: 'success', serviceId: service.id, activePayBillsTab: 'Installments' })}>Submit</button>
             </div>
             {instShowVerify && <EmailVerifyModal email={instEmail} onVerify={() => setInstEmailVerified(true)} onClose={() => setInstShowVerify(false)} />}
           </div>
@@ -3451,7 +3771,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
 }
 
 // ─── SUCCESS PAGE ─────────────────────────────────────────────────────────────
-function SuccessPage({ service, navigate }: { service: ServiceDef; navigate: (page: Page) => void }) {
+function SuccessPage({ service, navigate, activePayBillsTab }: { service: ServiceDef; navigate: (page: Page) => void; activePayBillsTab?: string }) {
   const REF = 'R00723-513232';
   const relatedServices = SERVICES.filter(s => s.id !== service.id && s.hasInfo).slice(0, 3);
   const serviceFee = parseFloat(service.charges) || 0;
@@ -3483,82 +3803,121 @@ function SuccessPage({ service, navigate }: { service: ServiceDef; navigate: (pa
         </div>
 
         <div className="dc-form-tabs">
-          {(['new', 'amend', 'cancel', 'enquiry'] as const).map(tab => (
-            <button key={tab} className={`dc-form-tab ${tab === 'new' ? 'dc-form-tab--active' : ''}`}
-              onClick={() => navigate({ name: 'form', serviceId: service.id })}>
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
+          {service.id === 'pay-bills'
+            ? (['Bills', 'Top Up', 'Miscellaneous', 'Installments'] as const).map((tab) => (
+                <button key={tab} className={`dc-form-tab ${(activePayBillsTab ?? 'Bills') === tab ? 'dc-form-tab--active' : ''}`}
+                  onClick={() => navigate({ name: 'form', serviceId: service.id })}>
+                  {tab}
+                </button>
+              ))
+            : (service.id === 'trade-ip-complaint'
+                ? (['new', 'enquiry'] as const)
+                : (['new', 'amend', 'cancel', 'enquiry'] as const)
+              ).map(tab => (
+                <button key={tab} className={`dc-form-tab ${tab === 'new' ? 'dc-form-tab--active' : ''}`}
+                  onClick={() => navigate({ name: 'form', serviceId: service.id })}>
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))
+          }
         </div>
 
-        <div className="dc-form-section-title">{service.serviceName}</div>
-
-        <div className="dc-success-card">
-          {paymentState === 'pending' ? (
-            <div className="dc-payment-pending-alert">
-              <div className="dc-payment-pending-alert__left">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="#B45309"/><path d="M12 7v5m0 4h.01" stroke="#fff" strokeWidth="2" strokeLinecap="round"/></svg>
-                <div>
-                  <div className="dc-payment-pending-alert__title">Payment Pending</div>
-                  <div className="dc-payment-pending-alert__msg">Please continue with the payment in order to complete the service request.</div>
+        {/* ── Card 1: Status banner + Request Details ── */}
+        <div className="dc-form-card dc-no-print">
+          <div className="dc-form-section">
+            {paymentState === 'pending' ? (
+              <div className="dc-payment-pending-alert">
+                <div className="dc-payment-pending-alert__left">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="#B45309"/><path d="M12 7v5m0 4h.01" stroke="#fff" strokeWidth="2" strokeLinecap="round"/></svg>
+                  <div>
+                    <div className="dc-payment-pending-alert__title">Payment Pending</div>
+                    <div className="dc-payment-pending-alert__msg">Please continue with the payment in order to complete the service request.</div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <SuccessAlert refNo={REF} inProcess />
-          )}
-
-          <div className="dc-success-grid">
-            <div className="dc-success-field">
-              <span className="dc-success-field__label">Reference No</span>
-              <span className="dc-success-field__value">{REF}</span>
-            </div>
-            <div className="dc-success-field">
-              <span className="dc-success-field__label">Request Status</span>
-              <span className="dc-badge dc-badge--draft">Draft</span>
-            </div>
-            <div className="dc-success-field">
-              <span className="dc-success-field__label">Service</span>
-              <span className="dc-success-field__value">{service.serviceName}</span>
-            </div>
-            <div className="dc-success-field">
-              <span className="dc-success-field__label">Name</span>
-              <span className="dc-success-field__value">Testname</span>
-            </div>
-            <div className="dc-success-field">
-              <span className="dc-success-field__label">Company</span>
-              <span className="dc-success-field__value">Testcompany</span>
-            </div>
-            <div className="dc-success-field">
-              <span className="dc-success-field__label">Contact Person</span>
-              <span className="dc-success-field__value">Test</span>
-            </div>
-            <div className="dc-success-field">
-              <span className="dc-success-field__label">Email</span>
-              <span className="dc-success-field__value">clasherschenmad@gmail.com</span>
-            </div>
-            <div className="dc-success-field">
-              <span className="dc-success-field__label">Mobile</span>
-              <span className="dc-success-field__value">00971-50-2298234</span>
-            </div>
-            <div className="dc-success-field">
-              <span className="dc-success-field__label">Subject</span>
-              <span className="dc-success-field__value">Test</span>
-            </div>
-            <div className="dc-success-field">
-              <span className="dc-success-field__label">No. of Units</span>
-              <span className="dc-success-field__value">1</span>
-            </div>
-            <div className="dc-success-field">
-              <span className="dc-success-field__label">Description</span>
-              <span className="dc-success-field__value">Test</span>
+            ) : (
+              <SuccessAlert refNo={REF} inProcess />
+            )}
+            <div className="dc-success-grid">
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Request Number</span>
+                <span className="dc-success-field__value">{REF}</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Request Status</span>
+                <span className="dc-badge dc-badge--draft">Draft</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Service</span>
+                <span className="dc-success-field__value">{service.serviceName}</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Service Type</span>
+                <span className="dc-success-field__value">{service.serviceType}</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Name</span>
+                <span className="dc-success-field__value">Testname</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Company</span>
+                <span className="dc-success-field__value">Testcompany</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Contact Person</span>
+                <span className="dc-success-field__value">Test</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Email</span>
+                <span className="dc-success-field__value">clasherschenmad@gmail.com</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Mobile</span>
+                <span className="dc-success-field__value">00971-50-2298234</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Subject</span>
+                <span className="dc-success-field__value">Test</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">No. of Units</span>
+                <span className="dc-success-field__value">1</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Description</span>
+                <span className="dc-success-field__value">Test</span>
+              </div>
             </div>
           </div>
+        </div>
 
-          <hr className="dc-success-divider" />
-
-          <div className="dc-charges">
-            <h4 className="dc-charges__title">Charges Summary</h4>
+        {/* ── Card 2: Charges Summary + Payment Details (after payment) ── */}
+        <div className="dc-form-card dc-no-print">
+          <div className="dc-form-section">
+            <h4 className="dc-form-section__heading">Charges Summary</h4>
+            {paymentState === 'paid' && (
+              <>
+                <div className="dc-success-grid" style={{ marginBottom: 20 }}>
+                  <div className="dc-success-field">
+                    <span className="dc-success-field__label">Payment Mode</span>
+                    <span className="dc-success-field__value">Credit Card</span>
+                  </div>
+                  <div className="dc-success-field">
+                    <span className="dc-success-field__label">Payment Status</span>
+                    <span className="dc-success-field__value">Success</span>
+                  </div>
+                  <div className="dc-success-field">
+                    <span className="dc-success-field__label">Receipt No.</span>
+                    <span className="dc-success-field__value">Z-12323</span>
+                  </div>
+                  <div className="dc-success-field">
+                    <span className="dc-success-field__label">Payment Reference No.</span>
+                    <span className="dc-success-field__value">5900080808</span>
+                  </div>
+                </div>
+                <hr className="dc-success-divider" style={{ margin: '0 0 20px' }} />
+              </>
+            )}
             <table className="dc-charges__table">
               <thead>
                 <tr><th>Charge</th><th>Amount</th></tr>
@@ -3583,43 +3942,152 @@ function SuccessPage({ service, navigate }: { service: ServiceDef; navigate: (pa
               </tfoot>
             </table>
           </div>
+        </div>
 
-          {/* Transaction History — shown after payment confirmed */}
-          {paymentState === 'paid' && (
-            <div className="dc-txn-history">
-              <div className="dc-txn-history__header">Transaction History</div>
-              <div className="dc-txn-history__body">
-                <div className="dc-txn-row">
-                  <span className="dc-txn-label">Initiated By</span>
-                  <span className="dc-txn-value">test</span>
-                  <span className="dc-txn-label">Request No.</span>
-                  <span className="dc-txn-value">R02015-83581</span>
-                </div>
-                <div className="dc-txn-row">
-                  <span className="dc-txn-label">Amount</span>
-                  <span className="dc-txn-value">{totalFee.toFixed(2)}</span>
-                  <span className="dc-txn-label">Transaction Status</span>
-                  <span className="dc-txn-value">Success</span>
-                </div>
-                <div className="dc-txn-row">
-                  <span className="dc-txn-label">DEG Transaction No</span>
-                  <span className="dc-txn-value">590000237140228</span>
-                  <span className="dc-txn-label">Transaction Date</span>
-                  <span className="dc-txn-value">Fri May 15 00:00:00 GST 2026</span>
-                </div>
-                <div className="dc-txn-row dc-txn-row--last">
-                  <span className="dc-txn-label">Payment Status</span>
-                  <span className="dc-txn-value">Success</span>
+        {/* ── Card 3: Transaction History (after payment) ── */}
+        {paymentState === 'paid' && (
+          <div className="dc-form-card dc-no-print">
+            <div className="dc-result-txn-card">
+              <div className="dc-result-txn-card__header">Transaction History</div>
+              <div className="dc-result-txn-card__body">
+                <div className="dc-success-grid">
+                  <div className="dc-success-field">
+                    <span className="dc-success-field__label">Initiated By</span>
+                    <span className="dc-success-field__value">test</span>
+                  </div>
+                  <div className="dc-success-field">
+                    <span className="dc-success-field__label">Request No.</span>
+                    <span className="dc-success-field__value">R02015-83581</span>
+                  </div>
+                  <div className="dc-success-field">
+                    <span className="dc-success-field__label">Amount</span>
+                    <span className="dc-success-field__value">{totalFee.toFixed(2)}</span>
+                  </div>
+                  <div className="dc-success-field">
+                    <span className="dc-success-field__label">Transaction Status</span>
+                    <span className="dc-success-field__value">Success</span>
+                  </div>
+                  <div className="dc-success-field">
+                    <span className="dc-success-field__label">DEG Transaction No</span>
+                    <span className="dc-success-field__value">590000237140228</span>
+                  </div>
+                  <div className="dc-success-field">
+                    <span className="dc-success-field__label">Transaction Date</span>
+                    <span className="dc-success-field__value">Fri May 15 00:00:00 GST 2026</span>
+                  </div>
+                  <div className="dc-success-field">
+                    <span className="dc-success-field__label">Payment Status</span>
+                    <span className="dc-success-field__value">Success</span>
+                  </div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          <div className="dc-form-actions dc-form-actions--center" style={{ marginTop: 24 }}>
-            {paymentState === 'pending' && (
-              <button className="dc-btn dc-btn--blue" onClick={() => setShowConfirm(true)}>Complete Payment</button>
+        <div className="dc-form-actions dc-form-actions--center dc-no-print" style={{ marginTop: 8 }}>
+          {paymentState === 'paid' && (
+            <button className="dc-btn dc-btn--outline" onClick={() => navigate({ name: 'form', serviceId: service.id })}>Back</button>
+          )}
+          {paymentState === 'pending' && (
+            <button className="dc-btn dc-btn--blue" style={{ paddingLeft: 15, paddingRight: 15 }} onClick={() => setShowConfirm(true)}>Complete Payment</button>
+          )}
+          <button className="dc-btn dc-btn--outline" onClick={() => window.print()}>Print</button>
+        </div>
+
+        {/* ── Print-only full details view ── */}
+        <div className="dc-print-only">
+          {/* Request Details block */}
+          <div className="dc-print-block">
+            <div className="dc-print-inprocess-banner">
+              {paymentState === 'paid' ? 'Request is under process.' : 'Payment Pending — Please continue with the payment to complete the service request.'}
+            </div>
+            <div className="dc-success-grid">
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Request Number</span>
+                <span className="dc-success-field__value">{REF}</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Request Status</span>
+                <span className="dc-success-field__value">{paymentState === 'paid' ? 'Payment Received' : 'Draft'}</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Ticket Number</span>
+                <span className="dc-success-field__value">2026060910000021</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Service</span>
+                <span className="dc-success-field__value">{service.serviceName}</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Service Type</span>
+                <span className="dc-success-field__value">{service.serviceType}</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Name</span>
+                <span className="dc-success-field__value">Testname</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Company</span>
+                <span className="dc-success-field__value">Testcompany</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Contact Person</span>
+                <span className="dc-success-field__value">Test</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Email</span>
+                <span className="dc-success-field__value">clasherschenmad@gmail.com</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Mobile</span>
+                <span className="dc-success-field__value">00971-50-2298234</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Subject</span>
+                <span className="dc-success-field__value">Test</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">No. of Units</span>
+                <span className="dc-success-field__value">1</span>
+              </div>
+              <div className="dc-success-field">
+                <span className="dc-success-field__label">Description</span>
+                <span className="dc-success-field__value">Test</span>
+              </div>
+            </div>
+          </div>
+          {/* Charges Summary block */}
+          <div className="dc-print-block" style={{ marginTop: 24 }}>
+            <h4 className="dc-print-charges-title">Charges Summary</h4>
+            {paymentState === 'paid' && (
+              <div className="dc-success-grid" style={{ margin: '12px 0 16px' }}>
+                <div className="dc-success-field">
+                  <span className="dc-success-field__label">Payment Mode</span>
+                  <span className="dc-success-field__value">Credit Card</span>
+                </div>
+                <div className="dc-success-field">
+                  <span className="dc-success-field__label">Payment Status</span>
+                  <span className="dc-success-field__value">Success</span>
+                </div>
+                <div className="dc-success-field">
+                  <span className="dc-success-field__label">Receipt No.</span>
+                  <span className="dc-success-field__value">Z-12323</span>
+                </div>
+                <div className="dc-success-field">
+                  <span className="dc-success-field__label">Payment Reference No.</span>
+                  <span className="dc-success-field__value">5900080808</span>
+                </div>
+              </div>
             )}
-            <button className="dc-btn dc-btn--outline" onClick={() => window.print()}>Print</button>
+            <table className="dc-print-charges-table">
+              <thead><tr><th>Charge</th><th>Amount</th></tr></thead>
+              <tbody>
+                <tr><td>{service.serviceName} Fee</td><td>Ð {serviceFee.toFixed(1)}</td></tr>
+                {knowledgeFee > 0 && <tr><td>Knowledge-Innovation Dirhams</td><td>Ð {knowledgeFee.toFixed(1)}</td></tr>}
+              </tbody>
+              <tfoot><tr><td><strong>Total Amount</strong></td><td><strong>Ð {totalFee.toFixed(1)}</strong></td></tr></tfoot>
+            </table>
           </div>
         </div>
 
@@ -3880,7 +4348,7 @@ export function App() {
         {page.name === 'home' && <HomePage navigate={navigate} />}
         {page.name === 'info' && service && <InfoPage service={service} navigate={navigate} />}
         {page.name === 'form' && service && <ServiceFormPage service={service} navigate={navigate} />}
-        {page.name === 'success' && service && <SuccessPage service={service} navigate={navigate} />}
+        {page.name === 'success' && service && <SuccessPage service={service} navigate={navigate} activePayBillsTab={page.activePayBillsTab} />}
       </main>
       <Footer />
     </div>
