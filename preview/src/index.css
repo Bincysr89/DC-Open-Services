@@ -1,4 +1,4 @@
-@import '../../packages/tokens/src/tokens.css';
+@import './tokens.css';
 
 /* ─── Reset & Base ─────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
