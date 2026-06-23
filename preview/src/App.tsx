@@ -1260,6 +1260,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
   const isClearanceLetter = service.id === 'request-certificates' && certServiceType === 'Clearance Letter';
   const isVATLetter = service.id === 'request-certificates' && certServiceType === 'VAT Registration Letter';
   const isGoodsClassification = service.id === 'goods-classification';
+  const isRequestCertificates = service.id === 'request-certificates';
   const isIPComplaint = service.id === 'trade-ip-complaint';
   const isAppealCustomsDecision = service.id === 'appeal-customs-decision';
   const isCustomsOpinion = service.id === 'customs-opinion';
@@ -1350,6 +1351,11 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
     },
   };
   const selectedOpinionType = opinionServiceType ? CUSTOMS_OPINION_SERVICE_TYPES[opinionServiceType] : null;
+  const showRestOfForm =
+    (!isRequestCertificates || !!certServiceType) &&
+    (!isIPComplaint || !!ipServiceType) &&
+    (!isAppealCustomsDecision || !!appealServiceType) &&
+    (!isCustomsOpinion || !!opinionServiceType);
 
   return (
     <div className="dc-form-card">
@@ -1640,6 +1646,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
       )}
 
       {/* Contact Information */}
+      {showRestOfForm && (
       <div className="dc-form-section">
         <h4 className="dc-form-section__heading">Contact Information</h4>
         <div className="dc-form-row">
@@ -1702,11 +1709,31 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
           </div>
         </div>
       </div>
+      )}
 
       {/* Request Information */}
+      {showRestOfForm && (
       <div className="dc-form-section">
         <h4 className="dc-form-section__heading">Request Information</h4>
-        {isIPComplaint && ipServiceType && (
+        <div className="dc-form-row">
+          <div className="dc-float-wrapper dc-field--half">
+            <div className="dc-float-field">
+              <input className="dc-float-input" placeholder=" " value={subject} onChange={e => setSubject(e.target.value)} />
+              <label className="dc-float-label">Subject <span className="dc-req">*</span></label>
+            </div>
+          </div>
+        </div>
+        <div className="dc-float-field" style={{ width: '100%' }}>
+          <textarea className="dc-float-input dc-float-textarea" placeholder=" " value={desc} onChange={e => setDesc(e.target.value)} rows={4} />
+          <label className="dc-float-label">Description <span className="dc-req">*</span></label>
+        </div>
+      </div>
+      )}
+
+      {/* IP Complaint (Trade Mark) — Additional Information */}
+      {isIPComplaint && ipServiceType === 'Trade Mark' && (
+        <div className="dc-form-section dc-additional-info">
+          <h4 className="dc-additional-info__heading">Additional Information</h4>
           <div className="dc-form-row" style={{ alignItems: 'flex-start' }}>
             <div className="dc-float-wrapper dc-field--half">
               <div className="dc-float-field">
@@ -1723,20 +1750,13 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
               <InfoTooltip tip="An extra fee of AED 500 will be charged for urgent request and a fee of AED 1000 for complaint submitted on holidays." />
             </div>
           </div>
-        )}
-        <div className="dc-form-row">
-          <div className="dc-float-wrapper dc-field--half">
-            <div className="dc-float-field">
-              <input className="dc-float-input" placeholder=" " value={subject} onChange={e => setSubject(e.target.value)} />
-              <label className="dc-float-label">Subject <span className="dc-req">*</span></label>
-            </div>
-          </div>
         </div>
-        <div className="dc-float-field" style={{ width: '100%' }}>
-          <textarea className="dc-float-input dc-float-textarea" placeholder=" " value={desc} onChange={e => setDesc(e.target.value)} rows={4} />
-          <label className="dc-float-label">Description <span className="dc-req">*</span></label>
-        </div>
-        {isGoodsClassification && (
+      )}
+
+      {/* Goods Classification — Additional Information */}
+      {isGoodsClassification && (
+        <div className="dc-form-section dc-additional-info">
+          <h4 className="dc-additional-info__heading">Additional Information</h4>
           <div className="dc-form-row" style={{ marginTop: 12 }}>
             <div className="dc-field--half" style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: 'calc(50% - 8px)' }}>
               <div className="dc-float-wrapper" style={{ width: '100%' }}>
@@ -1751,8 +1771,8 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Clearance Letter — Additional Information */}
       {isClearanceLetter && (
@@ -1817,6 +1837,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
       )}
 
       {/* Attachments */}
+      {showRestOfForm && (
       <div className="dc-form-section">
         <h4 className="dc-form-section__heading">Attachments</h4>
         <div className="dc-attachments">
@@ -1827,12 +1848,16 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
           <FileUploadRow />
         </div>
       </div>
+      )}
 
       {/* CAPTCHA */}
+      {showRestOfForm && (
       <div className="dc-form-section">
         <CaptchaWidget value="" onChange={() => {}} />
       </div>
+      )}
 
+      {showRestOfForm && (
       <div className="dc-form-actions">
         <button className="dc-btn dc-btn--outline" onClick={() => {
           setName(''); setCompany(''); setContactPerson(''); setEmail('');
@@ -1840,6 +1865,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
         }}>Reset</button>
         <button className="dc-btn dc-btn--blue" onClick={() => navigate({ name: 'success', serviceId: service.id })}>Submit</button>
       </div>
+      )}
       {showVerifyModal && (
         <EmailVerifyModal
           email={email}
@@ -3476,6 +3502,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
               </div>
             </div>
 
+            {miscServiceType && (<>
             {/* Section 2b: Business Information — Business Code only (Kimberly) */}
             {miscServiceType === 'Kimberly Certificate Process Charge' && (
               <div className="dc-form-section">
@@ -3590,6 +3617,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
               <button className="dc-btn dc-btn--outline" onClick={() => { setMiscServiceType(''); setMiscUnits(''); setMiscBusinessCode(''); setMiscNumCerts(''); setMiscDeclNumber(''); setMiscDeclFocused(false); setMiscCompany(''); setMiscName(''); setMiscContact(''); setMiscEmail(''); setMiscEmailVerified(false); setMiscPhone(''); setMiscMobile(''); setMiscSubject(''); setMiscDesc(''); setMiscCaptcha(''); }}>Reset</button>
               <button className="dc-btn dc-btn--blue" onClick={() => navigate({ name: 'success', serviceId: service.id, activePayBillsTab: 'Miscellaneous' })}>Submit</button>
             </div>
+            </>)}
             {miscShowVerify && <EmailVerifyModal email={miscEmail} onVerify={() => setMiscEmailVerified(true)} onClose={() => setMiscShowVerify(false)} />}
           </div>
         )}
