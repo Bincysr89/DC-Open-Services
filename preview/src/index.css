@@ -122,7 +122,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 .dc-search-bar {
   display: flex; align-items: center; gap: 8px;
   border: 1px solid #E4E2E6; border-radius: 999px; background: #fff;
-  padding: 0 8px 0 16px; width: 380px; height: 56px; flex-shrink: 0;
+  padding: 0 8px 0 16px; width: 380px; max-width: 100%; height: 56px; flex-shrink: 0;
   color: #888;
 }
 .dc-search-bar__input { border: none; outline: none; flex: 1; font-size: 17px; color: #0E1B3D; background: transparent; }
@@ -1236,3 +1236,125 @@ ul { list-style: none; margin: 0; padding: 0; }
 
 /* ─── Amend result status value alignment ────────────────────────────────── */
 .dc-amend-result-value--status { display: flex; align-items: center; gap: 8px; }
+
+/* ─── Responsive: tablet & mobile ─────────────────────────────────────────── */
+
+/* Navbar collapses below the width its full menu needs (~1140px):
+   logos + actions stay on row 1, menu becomes a scrollable second row */
+@media (max-width: 1200px) {
+  .dc-navbar__inner { flex-wrap: wrap; height: auto; min-height: 60px; padding: 8px 16px; row-gap: 4px; }
+  .dc-navbar__left { display: contents; }
+  .dc-navbar__right { margin-left: auto; }
+  .dc-navbar__menu {
+    order: 3; flex-basis: 100%; min-width: 0;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .dc-navbar__menu::-webkit-scrollbar { display: none; }
+}
+@media (max-width: 600px) {
+  .dc-navbar__gov-logo { height: 36px; }
+  .dc-navbar__dt-logo { height: 24px; }
+  .dc-navbar__right { gap: 8px; }
+}
+
+/* Hero banners */
+@media (max-width: 900px) {
+  .dc-hero, .dc-sc-hero { padding: 36px 28px 32px; min-height: 140px; }
+  .dc-hero__title, .dc-sc-hero__title { font-size: clamp(32px, 8vw, 48px); }
+  .dc-hero__subtitle, .dc-sc-hero__sub { font-size: 18px; }
+}
+@media (max-width: 600px) {
+  .dc-hero, .dc-sc-hero { padding: 28px 20px 26px; }
+  .dc-hero-wrap, .dc-sc-hero-wrap { padding: 16px 16px 0; }
+}
+
+/* Page gutters */
+@media (max-width: 600px) {
+  .dc-container { padding: 0 16px 40px; }
+  .dc-catalog { padding: 16px 16px 48px; }
+  .dc-customs-header__inner, .dc-page-header__inner { padding: 16px 16px 0; }
+}
+
+/* Catalog toolbar: search fills the row */
+@media (max-width: 800px) {
+  .dc-search-filter-wrap { width: 100%; }
+  .dc-search-bar { flex: 1; width: auto; min-width: 0; }
+}
+
+/* Info page tabs scroll horizontally instead of overflowing */
+.dc-info-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.dc-info-tabs::-webkit-scrollbar { display: none; }
+
+/* Form pill tabs */
+@media (max-width: 600px) {
+  .dc-form-tabs { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .dc-form-tabs::-webkit-scrollbar { display: none; }
+  .dc-form-tab { padding: 8px 16px; }
+}
+
+/* Form sections & cards */
+@media (max-width: 600px) {
+  .dc-form-section { padding: 20px 16px; }
+  .dc-additional-info { padding: 16px !important; }
+  .dc-form-inner-card { margin: 16px; }
+  /* Card pair rows are inline-styled flex rows; stack them and neutralize
+     the cards' inline flex:1 so each card takes the full row */
+  .dc-basic-info-cards > div { flex-direction: column; }
+  /* Inline-styled children (e.g. the Service Type dropdown wrapper at
+     width: calc(50% - 6px)) span the full row once stacked */
+  .dc-basic-info-cards > div > div { width: 100% !important; }
+  .dc-basic-info-card { min-width: 0; width: 100%; flex: none !important; }
+  .dc-cert-type-row { flex-direction: column; }
+}
+
+/* Dropzone: stack vertically so the text can wrap and Browse File sits below */
+@media (max-width: 600px) {
+  .dc-dropzone { flex-direction: column; gap: 10px; padding: 20px 12px; text-align: center; }
+  .dc-dropzone__text { white-space: normal; }
+}
+
+/* Payment Details summary (Bills / Top Up) stacks its three stat blocks;
+   confirmation popups: tighter padding, buttons shrink instead of spilling
+   past the modal border (inline gap/min-width need the !important) */
+@media (max-width: 600px) {
+  .dc-payment-summary { flex-direction: column; gap: 14px !important; }
+  .dc-payment-summary > div { padding-right: 0 !important; }
+  .dc-confirm-modal { padding: 32px 20px 28px !important; }
+  .dc-confirm-actions { flex-wrap: wrap; }
+  .dc-confirm-actions button { flex: 1 1 auto; min-width: 0 !important; }
+}
+
+/* Image CAPTCHA: image + refresh on one row, input drops below */
+@media (max-width: 480px) {
+  .dc-captcha-row { flex-wrap: wrap; }
+  .dc-captcha-row__img { order: 1; flex: 1; min-width: 0; }
+  .dc-captcha-row__refresh { order: 2; }
+  .dc-captcha-row__input { order: 3; flex-basis: 100%; }
+}
+
+/* File upload grids */
+@media (max-width: 900px) { .dc-file-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) {
+  .dc-file-grid { grid-template-columns: 1fr; }
+  .dc-attachments__grid { grid-template-columns: 1fr; }
+}
+
+/* Result / success layouts with fixed desktop grids */
+@media (max-width: 800px) {
+  .dc-txn-row, .dc-txn-row--last { grid-template-columns: 140px 1fr; }
+  .dc-amend-result-row { grid-template-columns: 150px 1fr; }
+  .dc-amend-result-value { border-right: none; }
+  .dc-payment-details-row { grid-template-columns: 160px 1fr; }
+  .dc-payment-details-value { border-right: none; }
+  .dc-charges { overflow-x: auto; }
+}
+@media (max-width: 700px) {
+  .dc-amend-confirm { padding: 28px 20px 24px; }
+  .dc-amend-confirm__msg { white-space: normal; }
+  .dc-amend-confirm__grid { grid-template-columns: repeat(2, 1fr); }
+  .dc-status-summary-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .dc-success-grid { grid-template-columns: 1fr; }
+}

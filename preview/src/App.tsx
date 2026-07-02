@@ -2733,7 +2733,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
                   <div className="dc-form-section">
                     <h4 className="dc-form-section__heading">Payment Details</h4>
                     <p style={{ fontSize: 16, color: '#888', marginBottom: 16 }}>Note* Card payment has maximum limit of AED 1,000,000.00</p>
-                    <div style={{ display: 'flex', gap: 0, alignItems: 'flex-start' }}>
+                    <div className="dc-payment-summary" style={{ display: 'flex', gap: 0, alignItems: 'flex-start' }}>
                       <div style={{ borderLeft: '1px solid #e0e4ed', paddingLeft: 16, paddingRight: 40 }}>
                         <p style={{ fontSize: 16, color: '#7a8a99', marginBottom: 4 }}>Total Selected Transactions</p>
                         <p style={{ fontSize: 16, fontWeight: 600, color: '#1a2533' }}>1</p>
@@ -2758,7 +2758,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
                 </div>
                 {showBillPayConfirm && (
                   <div className="dc-modal-overlay" onClick={() => setShowBillPayConfirm(false)}>
-                    <div className="dc-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480, textAlign: 'center', padding: '40px 36px 36px', gap: 0 }}>
+                    <div className="dc-modal dc-confirm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480, textAlign: 'center', padding: '40px 36px 36px', gap: 0 }}>
                       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'center' }}>
                         <svg width="70" height="70" viewBox="0 0 70 70" fill="none">
                           <circle cx="35" cy="35" r="33" stroke="#1360D2" strokeWidth="3" fill="none"/>
@@ -2770,7 +2770,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
                       <p style={{ fontSize: 16, color: '#3D4E63', lineHeight: 1.65, margin: '0 0 32px' }}>
                         By clicking the confirm button, you are authorizing us to redirect your request for payment of 1 transaction(s) of total <strong style={{ color: '#0E1B3D' }}>AED 140,000</strong> through Dubai E-Government payment site.
                       </p>
-                      <div style={{ display: 'flex', gap: 20, justifyContent: 'center' }}>
+                      <div className="dc-confirm-actions" style={{ display: 'flex', gap: 20, justifyContent: 'center' }}>
                         <button onClick={() => setShowBillPayConfirm(false)} style={{ height: 48, padding: '0 28px', borderRadius: 4, border: '1.5px solid #1360D2', background: '#fff', color: '#1360D2', fontSize: 16, fontWeight: 500, cursor: 'pointer', minWidth: 140, boxShadow: '0 0 8px rgba(28,72,191,0.16)', fontFamily: 'inherit' }}>Cancel</button>
                         <button onClick={() => { setShowBillPayConfirm(false); setShowBillTxnModal(true); }} style={{ height: 48, padding: '0 28px', borderRadius: 4, border: 'none', background: '#1360D2', color: '#fff', fontSize: 16, fontWeight: 500, cursor: 'pointer', minWidth: 140, boxShadow: '0 0 8px rgba(28,72,191,0.16)', fontFamily: 'inherit' }}>Confirm</button>
                       </div>
@@ -3162,7 +3162,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
                   <div className="dc-form-section">
                     <h4 className="dc-form-section__heading">Payment Details</h4>
                     <p style={{ fontSize: 16, color: '#888', marginBottom: 16 }}>Note* Card payment has maximum limit of AED 1,000,000.00</p>
-                    <div style={{ display: 'flex', gap: 0, alignItems: 'flex-start' }}>
+                    <div className="dc-payment-summary" style={{ display: 'flex', gap: 0, alignItems: 'flex-start' }}>
                       <div style={{ borderLeft: '1px solid #e0e4ed', paddingLeft: 16, paddingRight: 40 }}>
                         <p style={{ fontSize: 16, color: '#7a8a99', marginBottom: 4 }}>Total Selected Transactions</p>
                         <p style={{ fontSize: 16, fontWeight: 600, color: '#1a2533' }}>1</p>
@@ -3185,7 +3185,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
                 {/* Topup confirm popup */}
                 {showTopupConfirm && (
                   <div className="dc-modal-overlay" onClick={() => setShowTopupConfirm(false)}>
-                    <div className="dc-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480, textAlign: 'center', padding: '40px 36px 36px', gap: 0 }}>
+                    <div className="dc-modal dc-confirm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480, textAlign: 'center', padding: '40px 36px 36px', gap: 0 }}>
                       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'center' }}>
                         <svg width="70" height="70" viewBox="0 0 70 70" fill="none">
                           <circle cx="35" cy="35" r="33" stroke="#1360D2" strokeWidth="3" fill="none"/>
@@ -3197,7 +3197,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
                       <p style={{ fontSize: 16, color: '#3D4E63', lineHeight: 1.65, margin: '0 0 32px' }}>
                         By clicking the confirm button, you are authorizing us to redirect your request for top-up of <strong style={{ color: '#0E1B3D' }}>AED {topupAmount || '0.00'}</strong> through Dubai E-Government payment site.
                       </p>
-                      <div style={{ display: 'flex', gap: 20, justifyContent: 'center' }}>
+                      <div className="dc-confirm-actions" style={{ display: 'flex', gap: 20, justifyContent: 'center' }}>
                         <button onClick={() => setShowTopupConfirm(false)} style={{ height: 48, padding: '0 28px', borderRadius: 4, border: '1.5px solid #1360D2', background: '#fff', color: '#1360D2', fontSize: 16, fontWeight: 500, cursor: 'pointer', minWidth: 140, boxShadow: '0 0 8px rgba(28,72,191,0.16)', fontFamily: 'inherit' }}>Cancel</button>
                         <button onClick={() => { setShowTopupConfirm(false); setShowTopupTxnModal(true); }} style={{ height: 48, padding: '0 28px', borderRadius: 4, border: 'none', background: '#1360D2', color: '#fff', fontSize: 16, fontWeight: 500, cursor: 'pointer', minWidth: 140, boxShadow: '0 0 8px rgba(28,72,191,0.16)', fontFamily: 'inherit' }}>Confirm</button>
                       </div>
@@ -4356,12 +4356,22 @@ function LoginPage({ onAuth }: { onAuth: () => void }) {
 }
 
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
+function getInitialPage(): Page {
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const pageName = params.get('page');
+  const serviceId = params.get('serviceId');
+  if (pageName === 'info' && serviceId) return { name: 'info', serviceId };
+  if (pageName === 'form' && serviceId) return { name: 'form', serviceId };
+  if (pageName === 'success' && serviceId) return { name: 'success', serviceId };
+  return { name: 'home' };
+}
+
 export function App() {
-  const [authed, setAuthed] = useState(false);
-  const [page, setPage] = useState<Page>({ name: 'home' });
+  const [authed, setAuthed] = useState(() => localStorage.getItem(AUTH_KEY) === 'true');
+  const [page, setPage] = useState<Page>(getInitialPage);
 
   if (!authed) {
-    return <LoginPage onAuth={() => setAuthed(true)} />;
+    return <LoginPage onAuth={() => { localStorage.setItem(AUTH_KEY, 'true'); setAuthed(true); }} />;
   }
 
   const navigate = (next: Page) => {
