@@ -1120,6 +1120,26 @@ function FloatSelect({ label, required, value, onChange, children, className }: 
   );
 }
 
+// ─── Float Date Field ─────────────────────────────────────────────────────────
+function DateField({ label, required, value, onChange, hint }: {
+  label: string; required?: boolean; value: string; onChange: (v: string) => void; hint?: string;
+}) {
+  return (
+    <div className="dc-float-wrapper dc-field--half">
+      <div className="dc-float-field">
+        <input className="dc-float-input dc-float-input--icon" placeholder=" " value={value} onChange={e => onChange(e.target.value)} />
+        <label className="dc-float-label">{label}{required && <span className="dc-req"> *</span>}</label>
+        <span className="dc-float-icon-suffix">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </span>
+      </div>
+      {hint && <InfoTooltip tip={hint} />}
+    </div>
+  );
+}
+
 // ─── FORM PAGE ────────────────────────────────────────────────────────────────
 function ServiceFormPage({ service, navigate }: { service: ServiceDef; navigate: (page: Page) => void }) {
   const [activeTab, setActiveTab] = useState<'new' | 'amend' | 'cancel' | 'enquiry'>('new');
@@ -1269,6 +1289,32 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
   const [urgentRequest, setUrgentRequest] = useState(false);
   const [appealServiceType, setAppealServiceType] = useState('');
   const [opinionServiceType, setOpinionServiceType] = useState('');
+  const isBusinessRegistration = service.id === 'business-registration';
+  const [brBusinessName, setBrBusinessName] = useState('');
+  const [brBusinessNameAr, setBrBusinessNameAr] = useState('');
+  const [brRegCategory, setBrRegCategory] = useState('');
+  const [brEmployeeCount, setBrEmployeeCount] = useState('');
+  const [brLicenseNumber, setBrLicenseNumber] = useState('');
+  const [brLicenseType, setBrLicenseType] = useState('');
+  const [brIssuingAuthority, setBrIssuingAuthority] = useState('');
+  const [brLicenseIssueDate, setBrLicenseIssueDate] = useState('');
+  const [brLicenseValidFrom, setBrLicenseValidFrom] = useState('');
+  const [brLicenseValidTo, setBrLicenseValidTo] = useState('');
+  const [brPhone, setBrPhone] = useState('');
+  const [brFax, setBrFax] = useState('');
+  const [brEmail, setBrEmail] = useState('');
+  const [brOperationalEmail, setBrOperationalEmail] = useState('');
+  const [brWebsite, setBrWebsite] = useState('');
+  const [brNocNumber, setBrNocNumber] = useState('');
+
+  const BR_ISSUING_AUTHORITIES = [
+    'Community Development Authority (CDA)',
+    'Department of Economy & Tourism - Dubai (DET)',
+    'Dubai Maritime City Authority - Dubai Maritime City',
+    'Islamic Affairs and Charitable Activities Department (IACAD)',
+    'Jebel Ali Free Zone Authority - Iraqi Companies',
+    'Security Industry Regulatory Agency (SIRA)',
+  ];
 
   const selectedCert = CERT_SERVICE_TYPES.find(t => t.name === certServiceType) ?? null;
 
@@ -1645,8 +1691,108 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
         </div>
       )}
 
+      {/* Business Registration — Business Details / License Details / Business Contact Details */}
+      {isBusinessRegistration && showRestOfForm && (
+        <>
+          <div className="dc-form-section">
+            <h4 className="dc-form-section__heading">Business Details</h4>
+            <div className="dc-form-row">
+              <div className="dc-float-wrapper dc-field--half">
+                <div className="dc-float-field">
+                  <input className="dc-float-input" placeholder=" " value={brBusinessName} onChange={e => setBrBusinessName(e.target.value)} />
+                  <label className="dc-float-label">Business Name <span className="dc-req">*</span></label>
+                </div>
+              </div>
+              <div className="dc-float-wrapper dc-field--half">
+                <div className="dc-float-field">
+                  <input className="dc-float-input" placeholder=" " value={brBusinessNameAr} onChange={e => setBrBusinessNameAr(e.target.value)} />
+                  <label className="dc-float-label">Business Name (Arabic)</label>
+                </div>
+              </div>
+            </div>
+            <div className="dc-form-row">
+              <FloatDropdown label="Registration Category" required value={brRegCategory} onChange={setBrRegCategory} className="dc-field--half"
+                options={['Dubai based companies', 'Emirates based companies', 'GCC based companies']} />
+              <FloatDropdown label="No. of Employee" value={brEmployeeCount} onChange={setBrEmployeeCount} className="dc-field--half"
+                options={['1-5', '6-10', '11-50', '51-100', '101-500', '500+']} />
+            </div>
+          </div>
+
+          <div className="dc-form-section">
+            <h4 className="dc-form-section__heading">License Details</h4>
+            <div className="dc-form-row">
+              <div className="dc-float-wrapper dc-field--half">
+                <div className="dc-float-field">
+                  <input className="dc-float-input" placeholder=" " value={brLicenseNumber} onChange={e => setBrLicenseNumber(e.target.value)} />
+                  <label className="dc-float-label">License Number <span className="dc-req">*</span></label>
+                </div>
+              </div>
+              <FloatDropdown label="License Type" required value={brLicenseType} onChange={setBrLicenseType} className="dc-field--half"
+                options={['Commercial', 'Entalaaq', 'Freezone', 'Govt. Decree', 'Govt. Notification', 'Industrial', 'Professional', 'eTrader']} />
+            </div>
+            <div className="dc-form-row">
+              <div className="dc-float-wrapper dc-field--half">
+                <FloatDropdown
+                  label="Issuing Authority"
+                  required
+                  value={brIssuingAuthority}
+                  onChange={setBrIssuingAuthority}
+                  disabled={!brRegCategory || !brLicenseType}
+                  options={BR_ISSUING_AUTHORITIES}
+                />
+                {(!brRegCategory || !brLicenseType) && (
+                  <InfoTooltip tip="Select Registration Category & License Type first" />
+                )}
+              </div>
+              <DateField label="License Original Issue Date" required value={brLicenseIssueDate} onChange={setBrLicenseIssueDate} hint="dd-mm-yyyy e.g. 01-01-2013" />
+            </div>
+            <div className="dc-form-row">
+              <DateField label="License Valid From" required value={brLicenseValidFrom} onChange={setBrLicenseValidFrom} hint="dd-mm-yyyy e.g. 01-01-2013" />
+              <DateField label="License Valid To" required value={brLicenseValidTo} onChange={setBrLicenseValidTo} hint="dd-mm-yyyy e.g. 01-01-2013" />
+            </div>
+          </div>
+
+          <div className="dc-form-section">
+            <h4 className="dc-form-section__heading">Business Contact Details</h4>
+            <div className="dc-form-row">
+              <PhoneField label="Phone" required value={brPhone} onChange={setBrPhone} tooltip="Country-Area-Number i.e. 971-55-1234567" />
+              <PhoneField label="Fax" required value={brFax} onChange={setBrFax} tooltip="Country-Area-Number i.e. 971-55-1234567" />
+            </div>
+            <div className="dc-form-row">
+              <div className="dc-float-wrapper dc-field--half">
+                <div className="dc-float-field">
+                  <input className="dc-float-input" placeholder=" " value={brEmail} onChange={e => setBrEmail(e.target.value)} />
+                  <label className="dc-float-label">Email <span className="dc-req">*</span></label>
+                </div>
+              </div>
+              <div className="dc-float-wrapper dc-field--half">
+                <div className="dc-float-field">
+                  <input className="dc-float-input" placeholder=" " value={brOperationalEmail} onChange={e => setBrOperationalEmail(e.target.value)} />
+                  <label className="dc-float-label">Operational Email <span className="dc-req">*</span></label>
+                </div>
+              </div>
+            </div>
+            <div className="dc-form-row">
+              <div className="dc-float-wrapper dc-field--half">
+                <div className="dc-float-field">
+                  <input className="dc-float-input" placeholder=" " value={brWebsite} onChange={e => setBrWebsite(e.target.value)} />
+                  <label className="dc-float-label">Website</label>
+                </div>
+                <InfoTooltip tip="Website URL i.e. company.com, www.company.com, http://company.com" />
+              </div>
+              <div className="dc-float-wrapper dc-field--half">
+                <div className="dc-float-field">
+                  <input className="dc-float-input" placeholder=" " value={brNocNumber} onChange={e => setBrNocNumber(e.target.value)} />
+                  <label className="dc-float-label">NOC Number</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Contact Information */}
-      {showRestOfForm && (
+      {showRestOfForm && !isBusinessRegistration && (
       <div className="dc-form-section">
         <h4 className="dc-form-section__heading">Contact Information</h4>
         <div className="dc-form-row">
@@ -1712,7 +1858,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
       )}
 
       {/* Request Information */}
-      {showRestOfForm && (
+      {showRestOfForm && !isBusinessRegistration && (
       <div className="dc-form-section">
         <h4 className="dc-form-section__heading">Request Information</h4>
         <div className="dc-form-row">
@@ -1853,6 +1999,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
       {/* CAPTCHA */}
       {showRestOfForm && (
       <div className="dc-form-section">
+        {isBusinessRegistration && <h4 className="dc-form-section__heading">Validation Code</h4>}
         <CaptchaWidget value="" onChange={() => {}} />
       </div>
       )}
@@ -1862,6 +2009,12 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
         <button className="dc-btn dc-btn--outline" onClick={() => {
           setName(''); setCompany(''); setContactPerson(''); setEmail('');
           setPhone(''); setMobile(''); setDesc(''); setSubject('');
+          if (isBusinessRegistration) {
+            setBrBusinessName(''); setBrBusinessNameAr(''); setBrRegCategory(''); setBrEmployeeCount('');
+            setBrLicenseNumber(''); setBrLicenseType(''); setBrIssuingAuthority('');
+            setBrLicenseIssueDate(''); setBrLicenseValidFrom(''); setBrLicenseValidTo('');
+            setBrPhone(''); setBrFax(''); setBrEmail(''); setBrOperationalEmail(''); setBrWebsite(''); setBrNocNumber('');
+          }
         }}>Reset</button>
         <button className="dc-btn dc-btn--blue" onClick={() => navigate({ name: 'success', serviceId: service.id })}>Submit</button>
       </div>

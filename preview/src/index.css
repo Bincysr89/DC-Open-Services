@@ -468,6 +468,10 @@ ul { list-style: none; margin: 0; padding: 0; }
 }
 .dc-float-input:focus { border-color: #1360D2; }
 .dc-float-input--icon { padding-right: 42px; }
+.dc-float-icon-suffix {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  color: #6B7A8D; pointer-events: none; display: flex; align-items: center;
+}
 
 /* Prefixed invoice field */
 .dc-float-field--prefixed { position: relative; }
