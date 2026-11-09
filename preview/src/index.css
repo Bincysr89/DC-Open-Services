@@ -1362,3 +1362,236 @@ ul { list-style: none; margin: 0; padding: 0; }
 @media (max-width: 480px) {
   .dc-success-grid { grid-template-columns: 1fr; }
 }
+
+/* ─── Business Registration (draft summary + full registration) ─────────────── */
+.dc-float-input--readonly { background: #F4F6F9; color: #6B7A8D; cursor: default; }
+.dc-float-input--readonly:focus { border-color: #D5DDFB; }
+.dc-br-list__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.dc-br-table td.dc-br-table__empty { text-align: center; color: #696F83; padding: 20px 16px; white-space: normal; }
+.dc-br-table th.dc-br-table__actions, .dc-br-table td.dc-br-table__actions { width: 1%; text-align: right; white-space: nowrap; }
+.dc-br-icon-btn { width: 34px; height: 34px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; color: #1360D2; }
+.dc-br-icon-btn:hover { background: #EDF2FD; }
+.dc-br-icon-btn--danger { color: #DC3545; }
+.dc-br-icon-btn--danger:hover { background: #FDEDEC; }
+.dc-br-table__row--selectable { cursor: pointer; }
+.dc-br-table__row--selectable:hover td { background: #F4F7FB; }
+.dc-br-table__row--selected td, .dc-br-table__row--selected:hover td { background: #EDF2FD; color: #1360D2; font-weight: 600; }
+.dc-br-sort { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: inherit; font-size: 16px; padding: 0; }
+.dc-br-note { display: flex; gap: 10px; align-items: flex-start; background: #EAF0FB; color: #1360D2; border-radius: 8px; padding: 12px 16px; font-size: 16px; line-height: 1.5; margin-bottom: 20px; }
+.dc-br-note__list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.dc-br-warn { display: flex; gap: 8px; align-items: center; color: #C0392B; font-size: 16px; margin: 0 0 16px; }
+.dc-br-warn svg path { stroke: #C0392B; }
+.dc-br-check { display: inline-flex; align-items: center; gap: 10px; font-size: 16px; color: #0E1B3D; cursor: pointer; margin-bottom: 16px; }
+.dc-br-check input { width: 18px; height: 18px; accent-color: #1360D2; cursor: pointer; }
+.dc-br-overlay { align-items: flex-start; overflow-y: auto; padding: 48px 20px; }
+.dc-br-overlay--center { align-items: center; }
+.dc-br-modal { background: #fff; border-radius: 12px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+.dc-br-modal__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 28px; border-bottom: 1px solid #E8EDF2; }
+.dc-br-modal__head h3 { margin: 0; font-size: 20px; font-weight: 700; color: #0E1B3D; }
+.dc-br-modal__close { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #6B7A8D; background: #F4F7FB; flex-shrink: 0; }
+.dc-br-modal__close:hover { background: #E8EDF2; }
+.dc-br-modal__body { padding: 24px 28px 4px; }
+.dc-br-modal__subhead { font-size: 18px; font-weight: 700; color: #0E1B3D; margin: 0 0 16px; }
+.dc-br-modal__foot { display: flex; justify-content: center; gap: 12px; padding: 16px 28px 24px; border-top: 1px solid #E8EDF2; }
+.dc-br-modal__foot .dc-btn { min-width: 120px; padding: 0 24px; }
+.dc-br-pager { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 4px; margin: 12px 0 20px; }
+.dc-br-pager button { min-width: 36px; height: 36px; padding: 0 8px; border: 1px solid #D5DDFB; border-radius: 6px; color: #1360D2; background: #fff; font-size: 14px; }
+.dc-br-pager button[aria-current="page"] { background: #1360D2; color: #fff; border-color: #1360D2; }
+.dc-br-pager button:disabled { opacity: 0.4; cursor: not-allowed; }
+@media (max-width: 700px) {
+  .dc-br-modal__head { padding: 16px; }
+  .dc-br-modal__body { padding: 20px 16px 4px; }
+  .dc-br-modal__foot { padding: 16px; }
+  .dc-br-overlay { padding: 16px 12px; }
+}
+.dc-br-count { font-size: 14px; color: #696F83; }
+.dc-br-type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.dc-br-type { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 12px 14px; border: 1px solid #D5DDFB; border-radius: 8px; background: #fff; font-size: 16px; color: #0E1B3D; cursor: pointer; transition: border-color 120ms, background 120ms; }
+.dc-br-type:hover { border-color: #1360D2; }
+.dc-br-type input { width: 18px; height: 18px; accent-color: #1360D2; cursor: pointer; flex-shrink: 0; margin: 0; }
+.dc-br-type--checked { border-color: #1360D2; background: #EDF2FD; font-weight: 600; }
+.dc-br-required-docs { font-size: 16px; color: #0E1B3D; margin: 0 0 16px; }
+.dc-br-required-docs span { font-weight: 600; }
+.dc-br-required-docs ul { margin: 4px 0 0; padding-left: 20px; color: #3D4E63; }
+.dc-br-note--danger { background: #FDEDEC; color: #C0392B; }
+
+/* Business Registration: inline entry form above each list table (2 fields per row like the other Open Services forms, Save/Reset right after the last field) */
+.dc-br-entry { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; align-items: start; margin-bottom: 20px; }
+.dc-br-entry > *, .dc-br-entry .dc-float-wrapper { min-width: 0; }
+.dc-br-entry .dc-field--half { min-width: 0; }
+.dc-br-entry__full { grid-column: 1 / -1; }
+.dc-br-entry__subhead { grid-column: 1 / -1; font-size: 18px; font-weight: 700; color: #0E1B3D; margin: 0; }
+.dc-br-entry__subhead ~ .dc-br-entry__subhead { margin-top: 4px; }
+.dc-br-entry__actions { display: flex; align-items: center; gap: 12px; min-height: 56px; }
+.dc-br-entry__actions .dc-btn { min-width: 120px; padding: 0 24px; }
+.dc-br-editing { font-size: 14px; font-weight: 600; color: #1360D2; background: #EDF2FD; border-radius: 16px; padding: 4px 12px; }
+@media (max-width: 600px) {
+  .dc-br-entry { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Business Registration: detail fields 2 per row (same grid as the entry forms) */
+.dc-br-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; align-items: start; }
+.dc-br-fields > *, .dc-br-fields .dc-float-wrapper, .dc-br-fields .dc-field--half { min-width: 0; }
+@media (max-width: 600px) { .dc-br-fields { grid-template-columns: minmax(0, 1fr); } }
+
+/* Collapsible section shell with a row count */
+.dc-br-section { scroll-margin-top: var(--br-offset, 96px); }
+.dc-br-section .dc-br-list__head { margin-bottom: 0; }
+.dc-br-section__body { margin-top: 20px; }
+.dc-br-section__toggle { display: inline-flex; align-items: center; gap: 10px; font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+.dc-br-section__count { font-size: 14px; font-weight: 600; color: #1360D2; background: #EDF2FD; border-radius: 12px; padding: 2px 10px; line-height: 1.4; }
+.dc-br-section__chev { color: #697498; flex-shrink: 0; transform: rotate(-90deg); transition: transform 150ms; }
+.dc-br-section__chev--open { transform: none; }
+
+/* Layout switch (Side menu / Steps) */
+.dc-br-viewbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin: 0 0 12px; font-size: 14px; color: #3D4E63; scroll-margin-top: var(--br-top, 96px); }
+.dc-br-viewbar__toggle { display: inline-flex; background: #fff; border: 1px solid #D5DDFB; border-radius: 8px; padding: 3px; }
+.dc-br-viewbar__toggle button { padding: 6px 14px; border-radius: 6px; border: 0; background: none; font-size: 14px; color: #3D4E63; cursor: pointer; }
+.dc-br-viewbar__toggle button[aria-pressed="true"] { background: #1360D2; color: #fff; font-weight: 600; }
+
+/* Sticky side menu */
+.dc-br-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; align-items: start; }
+.dc-br-nav { position: sticky; top: var(--br-top, 96px); z-index: 30; background: #fff; border-radius: 16px; padding: 20px 12px; box-shadow: 0 1px 3px rgba(16,24,40,0.05); max-height: calc(100vh - var(--br-top, 96px) - 16px); overflow-y: auto; }
+.dc-br-nav__top { display: flex; align-items: flex-start; gap: 8px; padding: 0 0 16px 8px; margin-bottom: 8px; border-bottom: 1px solid #E8EDF2; }
+.dc-br-nav__progress { flex: 1; min-width: 0; font-size: 14px; color: #3D4E63; }
+.dc-br-nav__progress strong { color: #0E1B3D; }
+.dc-br-nav__bar { height: 6px; background: #E8EDF2; border-radius: 3px; margin-top: 8px; overflow: hidden; }
+.dc-br-nav__bar > div { height: 100%; background: #1E8449; border-radius: 3px; transition: width 200ms; }
+.dc-br-nav__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.dc-br-nav__item { width: 100%; display: flex; align-items: center; gap: 12px; padding: 9px 8px; border-radius: 8px; background: none; border: 0; text-align: left; font-size: 15px; color: #3D4E63; cursor: pointer; }
+.dc-br-nav__item:hover { background: #F4F7FB; }
+.dc-br-nav__item--active, .dc-br-nav__item--active:hover { background: #EDF2FD; color: #1360D2; font-weight: 600; }
+.dc-br-nav__mark { flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #C8D0E0; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #697498; background: #fff; }
+.dc-br-nav__item--active .dc-br-nav__mark { border-color: #1360D2; color: #1360D2; }
+.dc-br-nav__mark--done, .dc-br-nav__item--active .dc-br-nav__mark--done { background: #1E8449; border-color: #1E8449; color: #fff; }
+.dc-br-nav__label { display: flex; flex-direction: column; min-width: 0; }
+.dc-br-nav__label em { font-style: normal; font-size: 12px; font-weight: 400; color: #697498; }
+
+/* Stepper */
+.dc-br-steps { position: sticky; top: var(--br-top, 96px); z-index: 30; margin: 0 0 12px; padding: 20px 24px; background: #fff; border-radius: 16px; box-shadow: 0 1px 3px rgba(16,24,40,0.05); }
+.dc-br-steps__list { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; }
+.dc-br-steps__label { font-size: 13px; line-height: 1.3; }
+.dc-br-steps__caption { display: none; margin: 12px 0 0; text-align: center; font-size: 14px; font-weight: 600; color: #0E1B3D; }
+.dc-br-steps__step { flex: 1; position: relative; min-width: 0; }
+.dc-br-steps__step:not(:last-child)::after { content: ''; position: absolute; top: 18px; left: calc(50% + 22px); right: calc(-50% + 18px); height: 2px; background: #E8EDF2; }
+.dc-br-steps__step--done:not(:last-child)::after { background: #1E8449; }
+.dc-br-steps__step button { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; background: none; border: 0; cursor: pointer; padding: 4px; font-size: 14px; color: #3D4E63; text-align: center; }
+.dc-br-steps__mark { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #C8D0E0; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #697498; background: #fff; position: relative; z-index: 1; }
+.dc-br-steps__step--current .dc-br-steps__mark { background: #1360D2; border-color: #1360D2; color: #fff; }
+.dc-br-steps__step--current .dc-br-steps__label { color: #0E1B3D; font-weight: 700; }
+.dc-br-steps__step--done .dc-br-steps__mark { background: #1E8449; border-color: #1E8449; color: #fff; }
+
+.dc-br-actions .dc-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+
+@media (max-width: 1100px) {
+  .dc-br-layout { grid-template-columns: minmax(0, 1fr); }
+  .dc-br-nav { padding: 8px; border-radius: 12px; max-height: none; overflow: visible; }
+  .dc-br-nav__progress { display: none; }
+  .dc-br-nav__list { flex-direction: row; overflow-x: auto; scrollbar-width: none; gap: 4px; }
+  .dc-br-nav__list::-webkit-scrollbar { display: none; }
+  .dc-br-nav__item { width: auto; white-space: nowrap; padding: 8px 12px; font-size: 14px; }
+  .dc-br-nav__label em { display: none; }
+}
+
+/* Collapsible side menu: shrinks to a rail of numbers/ticks */
+.dc-br-layout { transition: grid-template-columns 200ms ease; }
+.dc-br-layout--rail { grid-template-columns: 64px minmax(0, 1fr); }
+.dc-br-nav__collapse { flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px; border: 1px solid #D5DDFB; background: #fff; color: #1360D2; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.dc-br-nav__collapse:hover { background: #EDF2FD; }
+.dc-br-nav__mini { font-size: 12px; font-weight: 700; color: #1E8449; }
+.dc-br-nav--rail { padding: 16px 8px; }
+.dc-br-nav--rail .dc-br-nav__top { flex-direction: column-reverse; align-items: center; gap: 8px; padding: 0 0 12px; }
+.dc-br-nav--rail .dc-br-nav__item { justify-content: center; padding: 8px 0; }
+.dc-br-nav--rail .dc-br-nav__label { display: none; }
+@media (max-width: 1100px) {
+  .dc-br-layout--rail { grid-template-columns: minmax(0, 1fr); }
+  .dc-br-nav__top { display: none; }
+  .dc-br-nav--rail { padding: 8px; }
+  .dc-br-nav--rail .dc-br-nav__item { padding: 8px 12px; }
+  .dc-br-nav--rail .dc-br-nav__label { display: flex; }
+}
+/* Pinned stepper: fill the gap above it with the page colour so content doesn't show between it and the header */
+.dc-br-steps::before { content: ''; position: absolute; left: 0; right: 0; top: -17px; height: 17px; background: #F8FAFD; }
+@media (max-width: 1100px) { .dc-br-steps::before { top: -9px; height: 9px; } }
+/* Many steps on narrow screens: marks only, with a "Step x of n" caption under them */
+@media (max-width: 1100px) {
+  .dc-br-steps { padding: 14px 12px; }
+  .dc-br-steps__label { display: none; }
+  .dc-br-steps__caption { display: block; }
+}
+@media (max-width: 600px) {
+  .dc-br-steps { padding: 12px 6px; }
+  .dc-br-steps__list { gap: 0; }
+  .dc-br-steps__mark { width: 22px; height: 22px; font-size: 11px; border-width: 1.5px; }
+  .dc-br-steps__mark svg { width: 11px; height: 11px; }
+  .dc-br-steps__step button { padding: 4px 0; }
+  .dc-br-steps__step:not(:last-child)::after { top: 15px; left: calc(50% + 13px); right: calc(-50% + 13px); }
+  .dc-br-steps__caption { font-size: 13px; margin-top: 8px; }
+}
+
+/* User Registration page: success note and login check buttons */
+.dc-br-note--success { background: #E9F7EF; color: #1E8449; }
+.dc-br-login-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 20px; }
+.dc-br-login-actions .dc-btn { min-width: 200px; padding: 10px 24px; }
+.dc-br-login-actions .dc-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Accordion arrow sits in the section header's right corner */
+.dc-br-section__right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.dc-br-section__chev-btn { width: 32px; height: 32px; border-radius: 50%; border: 0; background: #F4F7FB; color: #3D4E63; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+.dc-br-section__chev-btn:hover { background: #EDF2FD; color: #1360D2; }
+.dc-br-section__chev { transform: rotate(0deg); }
+.dc-br-section__chev--open { transform: rotate(180deg); }
+
+/* Buttons float at the bottom of the screen while scrolling the form */
+.dc-br-actions { position: sticky; bottom: 0; z-index: 20; background: #fff; border-radius: 12px; box-shadow: 0 -4px 16px rgba(16,24,40,0.08); }
+@media (max-width: 700px) {
+  .dc-br-actions { padding: 12px; gap: 8px; }
+  .dc-br-actions .dc-btn { flex: 1 1 40%; min-width: 0; padding: 10px 12px; }
+}
+
+/* User Registration: Add User button */
+.dc-br-add-user { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 20px; }
+.dc-br-tag { font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 12px; background: #EDF2FD; color: #1360D2; }
+
+
+/* License Activities as removable tags */
+.dc-br-tag-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.dc-br-tag--removable { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; padding: 6px 6px 6px 14px; border-radius: 18px; }
+.dc-br-tag--removable button { width: 26px; height: 26px; border-radius: 50%; border: 0; background: transparent; color: #DC3545; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.dc-br-tag--removable button:hover { background: #FDEDEC; }
+.dc-br-tag--removable button svg { width: 15px; height: 15px; }
+.dc-br-tags-empty { margin: 0; padding: 16px; text-align: center; font-size: 15px; color: #696F83; background: #F8FAFD; border-radius: 8px; }
+
+/* Saved-as-draft card above the editable registration form; first-page stepper inside the form card */
+.dc-br-saved { margin-bottom: 12px; }
+.dc-form-card > .dc-br-steps { margin: 0; }
+.dc-br-steps__step button:disabled { cursor: not-allowed; }
+.dc-br-steps__step button:disabled .dc-br-steps__mark { background: #F4F7FB; border-color: #E0E5EE; color: #A0A9BC; }
+.dc-br-steps__step button:disabled .dc-br-steps__label { color: #A0A9BC; }
+.dc-br-nav__item:disabled { cursor: not-allowed; color: #A0A9BC; }
+.dc-br-nav__item:disabled:hover { background: none; }
+.dc-br-nav__item:disabled .dc-br-nav__mark { background: #F4F7FB; border-color: #E0E5EE; color: #A0A9BC; }
+/* Saved-as-draft card: message in the same green as its heading */
+.dc-br-saved .dc-success-alert__msg { color: #276749; }
+
+/* Business Registration: confirmation after Submit */
+.dc-br-confirm__title { font-size: 18px; font-weight: 700; color: #0E1B3D; margin: 0 0 16px; }
+.dc-br-confirm .dc-success-alert { margin-bottom: 24px; }
+.dc-br-confirm .dc-success-alert__msg { color: #276749; }
+.dc-br-confirm .dc-form-actions { margin-top: 8px; padding-top: 0; border-top: none; }
+.dc-br-confirm .dc-btn { display: inline-flex; align-items: center; gap: 8px; }
+.dc-br-print-request { display: none; }
+.dc-br-print-request__title { font-size: 20px; font-weight: 700; color: #0E1B3D; margin: 0 0 20px; }
+@media print {
+  body.br-print-request .dc-br-confirm { display: none !important; }
+  body.br-print-request .dc-br-print-request { display: block !important; }
+  .dc-br-print-request .dc-br-confirm__title { margin-top: 8px; }
+}
+
+/* Business Registration: Dubai Trade login before Amend / Update Contact */
+.dc-br-login { max-width: 520px; margin-left: auto; margin-right: auto; }
+.dc-br-login__fields { display: flex; flex-direction: column; gap: 20px; margin-top: 16px; }
+.dc-br-login__links { display: flex; justify-content: space-between; margin: 12px 0 20px; font-size: 14px; }
+.dc-br-login__links a, .dc-br-login__register a { color: #1360D2; text-decoration: none; font-weight: 600; }
+.dc-br-login__submit { width: 100%; justify-content: center; }
+.dc-br-login__register { text-align: center; font-size: 14px; color: #696f83; margin: 16px 0 0; }

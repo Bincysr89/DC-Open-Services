@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, Fragment } from 'react';
 import { SERVICES, getService, type ServiceDef } from './data';
+import { CalendarPicker, fmtDate, parseTypedDate } from './DatePicker';
 import {
   governmentOfDubai,
   dubaitrade,
@@ -24,8 +25,26 @@ import {
 type Page =
   | { name: 'home' }
   | { name: 'info'; serviceId: string }
-  | { name: 'form'; serviceId: string }
-  | { name: 'success'; serviceId: string; activePayBillsTab?: string };
+  | { name: 'form'; serviceId: string; tab?: FormTab }
+  | { name: 'success'; serviceId: string; activePayBillsTab?: string; brData?: BRData & { tab?: FormTab } }
+  | { name: 'br-registration'; serviceId: string; data: BRData; change?: BRChange }
+  | { name: 'br-login'; serviceId: string; kind: 'amend' | 'contact' }
+  | { name: 'br-submitted'; serviceId: string; data: BRData };
+
+type FormTab = 'new' | 'renew' | 'amend' | 'contact' | 'cancel' | 'enquiry';
+const FORM_TAB_LABELS: Record<FormTab, string> = {
+  new: 'New', renew: 'Renew', amend: 'Amend', contact: 'Update Contact', cancel: 'Cancel', enquiry: 'Enquiry',
+};
+// Business Registration: Amend and Update Contact need a Dubai Trade login first.
+const formTabsFor = (serviceId: string): readonly FormTab[] =>
+  serviceId === 'business-registration' ? ['new', 'renew', 'amend', 'contact', 'enquiry']
+  : serviceId === 'trade-ip-complaint' ? ['new', 'enquiry']
+  : ['new', 'amend', 'cancel', 'enquiry'];
+
+const goFormTab = (navigate: (page: Page) => void, serviceId: string, tab: FormTab) =>
+  serviceId === 'business-registration' && (tab === 'amend' || tab === 'contact')
+    ? navigate({ name: 'br-login', serviceId, kind: tab })
+    : navigate({ name: 'form', serviceId, tab });
 
 // ─── Icons (inline SVG) ───────────────────────────────────────────────────────
 function SearchIcon() {
@@ -580,17 +599,26 @@ function EmailVerifyModal({ email, onVerify, onClose }: {
 }
 
 // ─── File Upload ──────────────────────────────────────────────────────────────
-function FileUploadRow() {
+// multiple=false keeps only the latest file (one file per attachment row); onFilesChange reports the picks.
+function FileUploadRow({ multiple = true, accept, onFilesChange }: {
+  multiple?: boolean; accept?: string; onFilesChange?: (files: { name: string; size: number }[]) => void;
+} = {}) {
   const ref = useRef<HTMLInputElement>(null);
-  const [files, setFiles] = useState<string[]>([]);
+  const [files, setFiles] = useState<{ name: string; size: number }[]>([]);
   const [dragging, setDragging] = useState(false);
 
+  const update = (next: { name: string; size: number }[]) => {
+    setFiles(next);
+    onFilesChange?.(next);
+  };
+
   const addFiles = (newFiles: FileList) => {
-    setFiles(prev => [...prev, ...Array.from(newFiles).map(f => f.name)]);
+    const picked = Array.from(newFiles).map(f => ({ name: f.name, size: f.size }));
+    update(multiple ? [...files, ...picked] : picked.slice(-1));
   };
 
   const removeFile = (idx: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== idx));
+    update(files.filter((_, i) => i !== idx));
   };
 
   return (
@@ -600,7 +628,7 @@ function FileUploadRow() {
           {files.map((file, idx) => (
             <div key={idx} className="dc-file-input-wrap">
               <img src={fileType} width="28" height="28" alt="file" className="dc-file-type-icon" />
-              <span className="dc-file-input-text">{file}</span>
+              <span className="dc-file-input-text">{file.name}</span>
               <div className="dc-file-input-trail">
                 <button className="dc-file-tag__remove" onClick={() => removeFile(idx)} title="Remove file">
                   <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNiAxOUM2IDIwLjEgNi45IDIxIDggMjFIMTZDMTcuMSAyMSAxOCAyMC4xIDE4IDE5VjdINlYxOVpNOCA5SDE2VjE5SDhWOVpNMTUuNSA0TDE0LjUgM0g5LjVMOC41IDRINVY2SDE5VjRIMTUuNVoiIGZpbGw9IiNEQzM1NDUiLz48L3N2Zz4=" width="20" height="20" alt="Remove" />
@@ -625,7 +653,7 @@ function FileUploadRow() {
         <span className="dc-dropzone__text">Drag and drop files here</span>
         <span className="dc-dropzone__or">-Or-</span>
         <button className="dc-dropzone__browse" onClick={() => ref.current?.click()}>Browse File</button>
-        <input ref={ref} type="file" multiple style={{ display: 'none' }} onChange={e => { if (e.target.files?.length) { addFiles(e.target.files); e.target.value = ''; } }} />
+        <input ref={ref} type="file" multiple={multiple} accept={accept} style={{ display: 'none' }} onChange={e => { if (e.target.files?.length) { addFiles(e.target.files); e.target.value = ''; } }} />
       </div>
     </div>
   );
@@ -1121,28 +1149,77 @@ function FloatSelect({ label, required, value, onChange, children, className }: 
 }
 
 // ─── Float Date Field ─────────────────────────────────────────────────────────
+// value is YYYY-MM-DD; shown as DD-MM-YYYY. Opens the Dubai Trade calendar on focus or icon click.
 function DateField({ label, required, value, onChange, hint }: {
   label: string; required?: boolean; value: string; onChange: (v: string) => void; hint?: string;
 }) {
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState<string | null>(null);
+  const [focused, setFocused] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [open]);
+
+  const commit = (text: string) => {
+    if (!text.trim()) { onChange(''); setTyped(null); return; }
+    const iso = parseTypedDate(text);
+    if (iso) { onChange(iso); setTyped(null); } else setTyped(null); // not a date — put the field back
+  };
+
   return (
-    <div className="dc-float-wrapper dc-field--half">
+    <div className="dc-float-wrapper dc-field--half" ref={wrapRef} style={{ position: 'relative' }}>
       <div className="dc-float-field">
-        <input className="dc-float-input dc-float-input--icon" placeholder=" " value={value} onChange={e => onChange(e.target.value)} />
+        <input ref={inputRef} className="dc-float-input dc-float-input--icon" placeholder={focused ? 'DD-MM-YYYY' : ' '}
+          style={open ? { borderColor: '#1360D2' } : undefined}
+          value={typed ?? fmtDate(value)}
+          onChange={e => setTyped(e.target.value)}
+          onFocus={() => { setFocused(true); setOpen(true); }}
+          onBlur={e => { setFocused(false); commit(e.target.value); }}
+          onKeyDown={e => {
+            if (e.key === 'Enter') { commit(e.currentTarget.value); setOpen(false); }
+            if (e.key === 'Escape') { setTyped(null); setOpen(false); }
+          }} />
         <label className="dc-float-label">{label}{required && <span className="dc-req"> *</span>}</label>
-        <span className="dc-float-icon-suffix">
+        <button type="button" className="dc-float-icon-suffix" aria-label={`Open ${label} calendar`}
+          style={{ pointerEvents: 'auto', cursor: 'pointer', padding: 0 }}
+          onMouseDown={e => e.preventDefault()}
+          onClick={() => { if (open) setOpen(false); else inputRef.current?.focus(); }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
           </svg>
-        </span>
+        </button>
       </div>
       {hint && <InfoTooltip tip={hint} />}
+      {open && (
+        <div style={{
+          position: 'absolute', top: 60, left: 0, zIndex: 600,
+          background: '#fff', borderRadius: 12, border: '1px solid #e0e8f5',
+          padding: 20, minWidth: 340, boxShadow: '0 8px 32px rgba(14,27,61,0.16)',
+        }}>
+          <CalendarPicker value={value} onPick={v => { onChange(v); setTyped(null); setOpen(false); }} />
+          {value && (
+            <button type="button" onClick={() => { onChange(''); setOpen(false); }}
+              style={{ marginTop: 8, width: '100%', color: '#1360D2', fontSize: 13 }}>
+              Clear date
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── FORM PAGE ────────────────────────────────────────────────────────────────
-function ServiceFormPage({ service, navigate }: { service: ServiceDef; navigate: (page: Page) => void }) {
-  const [activeTab, setActiveTab] = useState<'new' | 'amend' | 'cancel' | 'enquiry'>('new');
+function ServiceFormPage({ service, navigate, initialTab }: { service: ServiceDef; navigate: (page: Page) => void; initialTab?: FormTab }) {
+  const [activeTab, setActiveTab] = useState<FormTab>(initialTab ?? 'new');
 
   if (service.formType === 'track') {
     return <TrackStatusForm service={service} navigate={navigate} />;
@@ -1167,23 +1244,23 @@ function ServiceFormPage({ service, navigate }: { service: ServiceDef; navigate:
         </div>
 
         <div className="dc-form-tabs">
-          {(service.id === 'trade-ip-complaint'
-            ? (['new', 'enquiry'] as const)
-            : (['new', 'amend', 'cancel', 'enquiry'] as const)
-          ).map(tab => (
+          {formTabsFor(service.id).map(tab => (
             <button
               key={tab}
               className={`dc-form-tab ${activeTab === tab ? 'dc-form-tab--active' : ''}`}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => service.id === 'business-registration' && (tab === 'amend' || tab === 'contact') ? goFormTab(navigate, service.id, tab) : setActiveTab(tab)}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {FORM_TAB_LABELS[tab]}
             </button>
           ))}
         </div>
 
         {activeTab === 'new' && <NewForm service={service} navigate={navigate} />}
+        {activeTab === 'renew' && <BRRenewForm service={service} navigate={navigate} />}
         {(activeTab === 'amend' || activeTab === 'cancel') && <AmendCancelForm key={activeTab} service={service} tabName={activeTab} navigate={navigate} />}
-        {activeTab === 'enquiry' && <EnquiryForm service={service} navigate={navigate} />}
+        {activeTab === 'enquiry' && (service.id === 'business-registration'
+          ? <BREnquiryForm service={service} navigate={navigate} />
+          : <EnquiryForm service={service} navigate={navigate} />)}
       </div>
     </>
   );
@@ -1290,6 +1367,10 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
   const [appealServiceType, setAppealServiceType] = useState('');
   const [opinionServiceType, setOpinionServiceType] = useState('');
   const isBusinessRegistration = service.id === 'business-registration';
+  const [brLayout, setBrLayout] = useBRLayout();
+  const [brRail, toggleBrRail] = useBRNavRail();
+  const [brActive, setBrActive] = useBRActiveSection('business,license,contact', isBusinessRegistration);
+  useBRStickyOffsets(isBusinessRegistration, brLayout);
   const [brBusinessName, setBrBusinessName] = useState('');
   const [brBusinessNameAr, setBrBusinessNameAr] = useState('');
   const [brRegCategory, setBrRegCategory] = useState('');
@@ -1403,9 +1484,10 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
     (!isAppealCustomsDecision || !!appealServiceType) &&
     (!isCustomsOpinion || !!opinionServiceType);
 
-  return (
+  const formCard = (
     <div className="dc-form-card">
-      {/* ── Section 1: Service Details ── */}
+      {/* ── Section 1: Service Details (not applicable to Business Registration) ── */}
+      {!isBusinessRegistration && (
       <div className="dc-form-section dc-basic-info-section">
         <div className="dc-basic-info-header">
           <h4 className="dc-form-section__heading" style={{margin:0}}>Service Details</h4>
@@ -1459,6 +1541,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
           </div>
         </div>
       </div>
+      )}
 
       {/* ── Section 2: Service Type Details (only for services with type selection) ── */}
       {(service.id === 'request-certificates' || isIPComplaint || isAppealCustomsDecision || isCustomsOpinion) && (
@@ -1694,7 +1777,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
       {/* Business Registration — Business Details / License Details / Business Contact Details */}
       {isBusinessRegistration && showRestOfForm && (
         <>
-          <div className="dc-form-section">
+          <div className="dc-form-section dc-br-section" id="br-business">
             <h4 className="dc-form-section__heading">Business Details</h4>
             <div className="dc-form-row">
               <div className="dc-float-wrapper dc-field--half">
@@ -1705,20 +1788,20 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
               </div>
               <div className="dc-float-wrapper dc-field--half">
                 <div className="dc-float-field">
-                  <input className="dc-float-input" placeholder=" " value={brBusinessNameAr} onChange={e => setBrBusinessNameAr(e.target.value)} />
+                  <input className="dc-float-input" placeholder=" " dir="rtl" value={brBusinessNameAr} onChange={e => setBrBusinessNameAr(e.target.value)} />
                   <label className="dc-float-label">Business Name (Arabic)</label>
                 </div>
               </div>
             </div>
             <div className="dc-form-row">
               <FloatDropdown label="Registration Category" required value={brRegCategory} onChange={setBrRegCategory} className="dc-field--half"
-                options={['Dubai based companies', 'Emirates based companies', 'GCC based companies']} />
+                options={['GCC based Companies']} />
               <FloatDropdown label="No. of Employee" value={brEmployeeCount} onChange={setBrEmployeeCount} className="dc-field--half"
-                options={['1-5', '6-10', '11-50', '51-100', '101-500', '500+']} />
+                options={['0 - 5', '6 - 10', '11 - 50', '51 - 100', '101 - 500', '500+']} />
             </div>
           </div>
 
-          <div className="dc-form-section">
+          <div className="dc-form-section dc-br-section" id="br-license">
             <h4 className="dc-form-section__heading">License Details</h4>
             <div className="dc-form-row">
               <div className="dc-float-wrapper dc-field--half">
@@ -1744,15 +1827,15 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
                   <InfoTooltip tip="Select Registration Category & License Type first" />
                 )}
               </div>
-              <DateField label="License Original Issue Date" required value={brLicenseIssueDate} onChange={setBrLicenseIssueDate} hint="dd-mm-yyyy e.g. 01-01-2013" />
+              <DateField label="License Original Issue Date" required value={brLicenseIssueDate} onChange={setBrLicenseIssueDate} hint="Dates provided should match with the dates in the License" />
             </div>
             <div className="dc-form-row">
-              <DateField label="License Valid From" required value={brLicenseValidFrom} onChange={setBrLicenseValidFrom} hint="dd-mm-yyyy e.g. 01-01-2013" />
-              <DateField label="License Valid To" required value={brLicenseValidTo} onChange={setBrLicenseValidTo} hint="dd-mm-yyyy e.g. 01-01-2013" />
+              <DateField label="License Valid From" required value={brLicenseValidFrom} onChange={setBrLicenseValidFrom} hint="Dates provided should match with the dates in the License" />
+              <DateField label="License Valid To" required value={brLicenseValidTo} onChange={setBrLicenseValidTo} hint="Dates provided should match with the dates in the License" />
             </div>
           </div>
 
-          <div className="dc-form-section">
+          <div className="dc-form-section dc-br-section" id="br-contact">
             <h4 className="dc-form-section__heading">Business Contact Details</h4>
             <div className="dc-form-row">
               <PhoneField label="Phone" required value={brPhone} onChange={setBrPhone} tooltip="Country-Area-Number i.e. 971-55-1234567" />
@@ -1983,7 +2066,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
       )}
 
       {/* Attachments */}
-      {showRestOfForm && (
+      {showRestOfForm && !isBusinessRegistration && (
       <div className="dc-form-section">
         <h4 className="dc-form-section__heading">Attachments</h4>
         <div className="dc-attachments">
@@ -2005,7 +2088,7 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
       )}
 
       {showRestOfForm && (
-      <div className="dc-form-actions">
+      <div className={`dc-form-actions${isBusinessRegistration ? ' dc-br-actions' : ''}`}>
         <button className="dc-btn dc-btn--outline" onClick={() => {
           setName(''); setCompany(''); setContactPerson(''); setEmail('');
           setPhone(''); setMobile(''); setDesc(''); setSubject('');
@@ -2016,7 +2099,19 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
             setBrPhone(''); setBrFax(''); setBrEmail(''); setBrOperationalEmail(''); setBrWebsite(''); setBrNocNumber('');
           }
         }}>Reset</button>
-        <button className="dc-btn dc-btn--blue" onClick={() => navigate({ name: 'success', serviceId: service.id })}>Submit</button>
+        {isBusinessRegistration ? (
+          <button className="dc-btn dc-btn--blue" onClick={() => navigate({
+            name: 'br-registration', serviceId: service.id,
+            data: withBRSamples({
+              businessName: brBusinessName, businessNameAr: brBusinessNameAr, regCategory: brRegCategory, employeeCount: brEmployeeCount,
+              licenseNumber: brLicenseNumber, licenseType: brLicenseType, issuingAuthority: brIssuingAuthority,
+              issueDate: brLicenseIssueDate, validFrom: brLicenseValidFrom, validTo: brLicenseValidTo,
+              phone: brPhone, fax: brFax, email: brEmail, operationalEmail: brOperationalEmail, website: brWebsite, nocNumber: brNocNumber,
+            }),
+          })}>Save and Proceed</button>
+        ) : (
+          <button className="dc-btn dc-btn--blue" onClick={() => navigate({ name: 'success', serviceId: service.id })}>Submit</button>
+        )}
       </div>
       )}
       {showVerifyModal && (
@@ -2027,6 +2122,35 @@ function NewForm({ service, navigate }: { service: ServiceDef; navigate: (page: 
         />
       )}
     </div>
+  );
+
+  if (!isBusinessRegistration) return formCard;
+
+  // Business Registration: the whole journey up front (side or top stepper); later steps open after Save and Proceed.
+  const brNavItems: BRNavItem[] = BR_FIRST_PAGE_IDS.map(id => ({
+    id, label: BR_SECTION_LABELS[id], optional: id === 'groups' || id === 'vat',
+    done: id === 'business' ? !!brBusinessName
+      : id === 'license' ? !!(brLicenseNumber && brLicenseIssueDate && brLicenseValidFrom && brLicenseValidTo)
+      : id === 'contact' ? !!(brPhone && brFax && brEmail && brOperationalEmail)
+      : false,
+  }));
+  const brGoTo = (id: string) => {
+    setBrActive(id);
+    document.getElementById(`br-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  return (
+    <>
+      <BRLayoutSwitch layout={brLayout} onChange={setBrLayout} />
+      {brLayout === 'steps' && (
+        <BRStepper steps={BR_FIRST_PAGE_STEPS} items={brNavItems} current={0} lockedAfter={0} onGo={() => brGoTo('business')} />
+      )}
+      <div className={brLayout === 'menu' ? `dc-br-layout${brRail ? ' dc-br-layout--rail' : ''}` : undefined}>
+        {brLayout === 'menu' && (
+          <BRSideNav items={brNavItems} active={brActive} onGo={brGoTo} rail={brRail} onToggleRail={toggleBrRail} lockedIds={BR_FIRST_PAGE_LOCKED} />
+        )}
+        {formCard}
+      </div>
+    </>
   );
 }
 
@@ -3954,7 +4078,7 @@ function PayBillsForm({ service, navigate }: { service: ServiceDef; navigate: (p
 }
 
 // ─── SUCCESS PAGE ─────────────────────────────────────────────────────────────
-function SuccessPage({ service, navigate, activePayBillsTab }: { service: ServiceDef; navigate: (page: Page) => void; activePayBillsTab?: string }) {
+function SuccessPage({ service, navigate, activePayBillsTab, brData }: { service: ServiceDef; navigate: (page: Page) => void; activePayBillsTab?: string; brData?: BRData & { tab?: FormTab } }) {
   const REF = 'R00723-513232';
   const relatedServices = SERVICES.filter(s => s.id !== service.id && s.hasInfo).slice(0, 3);
   const serviceFee = parseFloat(service.charges) || 0;
@@ -3967,6 +4091,8 @@ function SuccessPage({ service, navigate, activePayBillsTab }: { service: Servic
 
   const handleConfirmPayment = () => {
     setShowConfirm(false);
+    // Business Registration continues to its own Service Request Detail confirmation once paid.
+    if (brData) { navigate({ name: 'br-submitted', serviceId: service.id, data: brData }); return; }
     setPaymentState('paid');
   };
 
@@ -3993,13 +4119,10 @@ function SuccessPage({ service, navigate, activePayBillsTab }: { service: Servic
                   {tab}
                 </button>
               ))
-            : (service.id === 'trade-ip-complaint'
-                ? (['new', 'enquiry'] as const)
-                : (['new', 'amend', 'cancel', 'enquiry'] as const)
-              ).map(tab => (
-                <button key={tab} className={`dc-form-tab ${tab === 'new' ? 'dc-form-tab--active' : ''}`}
-                  onClick={() => navigate({ name: 'form', serviceId: service.id })}>
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            : formTabsFor(service.id).map(tab => (
+                <button key={tab} className={`dc-form-tab ${tab === (brData?.tab ?? 'new') ? 'dc-form-tab--active' : ''}`}
+                  onClick={() => goFormTab(navigate, service.id, tab)}>
+                  {FORM_TAB_LABELS[tab]}
                 </button>
               ))
           }
@@ -4508,6 +4631,1454 @@ function LoginPage({ onAuth }: { onAuth: () => void }) {
   );
 }
 
+// ─── BUSINESS REGISTRATION FLOW ───────────────────────────────────────────────
+// New tab (Request Details, stepper preview) → Save and Proceed → full registration (BRRegistrationPage) with the
+// "saved as draft" card on top and every section editable.
+type BRData = {
+  businessName: string; businessNameAr: string; regCategory: string; employeeCount: string;
+  licenseNumber: string; licenseType: string; issuingAuthority: string;
+  issueDate: string; validFrom: string; validTo: string; // YYYY-MM-DD
+  phone: string; fax: string; email: string; operationalEmail: string; website: string; nocNumber: string;
+};
+
+const BR_REQUEST_ID = '1-12402908268';
+const BR_VALIDATION_CODE = '1928389';
+
+const BR_SAMPLE_BUSINESS_CODE = 'AE-1012345';
+
+// Renew, Amend and Update Contact load an existing business into the same form.
+type BRChange = { kind: 'renew' | 'amend' | 'contact'; code: string };
+const BR_CHANGE_TEXT: Record<BRChange['kind'], { title: string; purpose: string; message: string }> = {
+  renew: { title: 'Renew Business Code', purpose: 'Renewal',
+    message: 'Review and update the business details below, then submit the request to renew the Business Code.' },
+  amend: { title: 'Amend Business Registration', purpose: 'Amendment',
+    message: 'Update the business details that have changed below, then submit the amendment request.' },
+  contact: { title: 'Update Contact Details', purpose: 'Contact Update',
+    message: 'Update the Business Contact Details below, then submit the request.' },
+};
+
+// Blank fields fall back to these so the demo always moves forward.
+const BR_SAMPLE: BRData = {
+  businessName: 'test', businessNameAr: 'شركة تجربة', regCategory: 'GCC based Companies', employeeCount: '0 - 5',
+  licenseNumber: '1928389', licenseType: 'Commercial', issuingAuthority: 'Department of Economy & Tourism - Dubai (DET)',
+  issueDate: '2026-11-01', validFrom: '2026-11-06', validTo: '2026-11-20',
+  phone: '971-5-5953448', fax: '971-3-2311243', email: 'test@gmail.com', operationalEmail: 'test@gmail.com', website: '', nocNumber: '',
+};
+
+function withBRSamples(d: BRData): BRData {
+  const out = { ...d };
+  (Object.keys(out) as (keyof BRData)[]).forEach(k => { if (!out[k].trim()) out[k] = BR_SAMPLE[k]; });
+  return out;
+}
+
+const BR_EMPLOYEE_COUNTS = ['0 - 5', '6 - 10', '11 - 50', '51 - 100', '101 - 500', '500+'];
+const BR_DATE_HINT = 'Dates provided should match with the dates in the License';
+const BR_PHONE_HINT = 'Country-Area-Number i.e. 971-55-1234567';
+const BR_COUNTRIES = ['United Arab Emirates', 'Saudi Arabia', 'Oman', 'Qatar', 'Kuwait', 'Bahrain', 'India', 'Pakistan', 'Egypt', 'United Kingdom', 'United States'];
+const BR_REGIONS: Record<string, string[]> = {
+  'United Arab Emirates': ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'],
+  'Saudi Arabia': ['Riyadh Province', 'Makkah Province', 'Eastern Province'],
+  'India': ['Kerala', 'Maharashtra', 'Karnataka', 'Tamil Nadu'],
+};
+const BR_CITIES: Record<string, string[]> = {
+  'Dubai': ['Dubai', 'Jebel Ali', 'Hatta'],
+  'Abu Dhabi': ['Abu Dhabi', 'Al Ain', 'Ruwais'],
+  'Sharjah': ['Sharjah', 'Khor Fakkan', 'Kalba'],
+  'Riyadh Province': ['Riyadh', 'Al Kharj'],
+  'Makkah Province': ['Jeddah', 'Makkah', 'Taif'],
+  'Eastern Province': ['Dammam', 'Khobar', 'Jubail'],
+  'Kerala': ['Kochi', 'Thiruvananthapuram', 'Kozhikode'],
+  'Maharashtra': ['Mumbai', 'Pune'],
+};
+const BR_BUSINESS_TYPES = [
+  'Broker', 'Airline Agent', 'CH (Cargo Handler)', 'Courier', 'Customs Warehouse',
+  'Exporter (Commercial)', 'Importer (Commercial)', 'Shipping line Agent', 'e-Commerce',
+];
+const BR_FACILITY_TYPES = ['Branch', 'Head Office', 'Warehouse', 'Showroom', 'Factory'];
+const BR_RELATIONSHIP_TYPES = ['Parent Company', 'Subsidiary', 'Sister Company', 'Affiliate', 'Branch'];
+const BR_DOCUMENT_TYPES = ['Trade License Copy', 'Proof-Airline Agent for Cargo', 'Passport Copy', 'Emirates ID Copy', 'Power of Attorney', 'Memorandum of Association', 'Other'];
+const BR_LICENSE_ACTIVITIES = [
+  'Access Cradles Manufacturing', 'Accidents & Liabilities Insurance', 'Accounting & Bookkeeping', 'Accounting & Office Machinery Rental',
+  'Acid Manufacturing', 'Acids & Alkalines Trading', 'Acquarium Park', 'Acupuncture Therapy Clinc', 'Adhesives Manufacturing', 'Adhesives Trading',
+  'Advertising Agency', 'Aerial Photography', 'Agricultural Equipment Trading', 'Agricultural Seeds Trading', 'Air Cargo Agents',
+  'Air Conditioning Contracting', 'Aircraft Spare Parts Trading', 'Alcoholic Beverages Trading', 'Aluminium Products Trading', 'Animal Feed Trading',
+  'Antiques Trading', 'Apparel Trading', 'Auto Spare Parts Trading', 'Bakery Products Trading', 'Batteries Trading', 'Building Materials Trading',
+  'Car Rental', 'Cargo Packing Services', 'Clearing & Forwarding Services', 'Cosmetics Trading', 'Customs Brokerage', 'Electronics Trading',
+  'Foodstuff Trading', 'Furniture Trading', 'General Trading', 'Jewellery Trading', 'Medical Equipment Trading', 'Shipping Lines Agents',
+  'Textiles Trading', 'Watches Trading',
+];
+const BR_USER_DIRECTORY = [
+  { firstName: 'Mohammed', lastName: 'Saeed', userCode: 'USR10234', businessCode: 'BC00871', businessName: 'Al Noor Trading LLC' },
+  { firstName: 'Fatima', lastName: 'Ali', userCode: 'USR10577', businessCode: 'BC00871', businessName: 'Al Noor Trading LLC' },
+  { firstName: 'Rahul', lastName: 'Menon', userCode: 'USR11002', businessCode: 'BC01245', businessName: 'Gulf Star Logistics FZE' },
+];
+
+type BRAddress = { line1: string; line2: string; street: string; area: string; poBox: string; country: string; emirate: string; city: string };
+type BRFacility = { name: string; type: string; status: string };
+type BRUser = {
+  userCode: string; firstName: string; middleName: string; lastName: string; arabicName: string; gender: string;
+  designation: string; placeOfWork: string; contactMode: string; nationality: string; dob: string; placeOfBirth: string;
+  mobile: string; email: string; phone: string; fax: string; altEmail: string;
+};
+type BRGroup = { code: string; name: string; relationship: string };
+type BRCredential = { number: string; type: string; country: string; issueDate: string; expiryDate: string };
+type BRAttachment = { title: string; docType: string; fileName: string; fileType: string; fileSize: number };
+type BRUserAccount = {
+  loginId: string; password: string; existingPortalUser: boolean; hintQuestion: string; hintAnswer: string;
+  roles: string[]; credentials: BRCredential[]; addresses: BRAddress[]; attachments: BRAttachment[];
+};
+type BRUserRecord = BRUser & { account: BRUserAccount };
+type BRListKind = 'address' | 'carrier' | 'activity' | 'facility' | 'user' | 'group' | 'attachment';
+
+const BR_EMPTY_ADDRESS: BRAddress = { line1: '', line2: '', street: '', area: '', poBox: '', country: '', emirate: '', city: '' };
+const BR_EMPTY_USER: BRUser = {
+  userCode: '', firstName: '', middleName: '', lastName: '', arabicName: '', gender: '', designation: '', placeOfWork: '',
+  contactMode: '', nationality: '', dob: '', placeOfBirth: '', mobile: '', email: '', phone: '', fax: '', altEmail: '',
+};
+const BR_EMPTY_ACCOUNT: BRUserAccount = {
+  loginId: '', password: '', existingPortalUser: false, hintQuestion: '', hintAnswer: '',
+  roles: [], credentials: [], addresses: [], attachments: [],
+};
+const BR_EMPTY_CREDENTIAL: BRCredential = { number: '', type: '', country: '', issueDate: '', expiryDate: '' };
+const BR_ROLES = ['Authorized Person', 'Broker Representative', 'Individual', 'Manager', 'Owner', 'Partner', 'Sponsor', 'Trader Representative'];
+const BR_IDENTITY_TYPES = ['Emirates ID', 'Passport', 'Visa', 'National ID', 'Driving License'];
+const BR_HINT_QUESTIONS = ['What is your Mothers name?', 'What is the name of your first school?', 'What is your favourite city?', 'What was the name of your first pet?'];
+const BR_USER_DOCUMENT_TYPES = ['Emirates ID/National ID', 'Passport Copy', 'Visa Copy', 'Power of Attorney', 'Other'];
+
+// ── Small building blocks ──
+function FloatInput({ label, required, value, onChange, readOnly, dir, hint, onFocus, type, maxLength, className = 'dc-field--half' }: {
+  label: string; required?: boolean; value: string; onChange?: (v: string) => void; readOnly?: boolean;
+  dir?: 'rtl' | 'ltr'; hint?: string; onFocus?: () => void; type?: string; maxLength?: number; className?: string;
+}) {
+  return (
+    <div className={`dc-float-wrapper ${className}`}>
+      <div className="dc-float-field">
+        <input className={`dc-float-input${readOnly ? ' dc-float-input--readonly' : ''}`} placeholder=" " dir={dir} type={type} maxLength={maxLength}
+          value={value} readOnly={readOnly} onFocus={onFocus} onChange={e => onChange?.(e.target.value)} />
+        <label className="dc-float-label">{label}{required && <span className="dc-req"> *</span>}</label>
+      </div>
+      {hint && <InfoTooltip tip={hint} />}
+    </div>
+  );
+}
+
+function BRNote({ children, tone = 'info' }: { children: React.ReactNode; tone?: 'info' | 'danger' | 'success' }) {
+  return (
+    <div className={`dc-br-note${tone === 'info' ? '' : ` dc-br-note--${tone}`}`}>
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0, marginTop: 2 }}>
+        <path d="M9.9974 13.3327V9.99935M9.9974 6.66602H10.0057M18.3307 9.99935C18.3307 14.6017 14.5998 18.3327 9.9974 18.3327C5.39502 18.3327 1.66406 14.6017 1.66406 9.99935C1.66406 5.39698 5.39502 1.66602 9.9974 1.66602C14.5998 1.66602 18.3307 5.39698 18.3307 9.99935Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+      <div>{children}</div>
+    </div>
+  );
+}
+
+function BRSummaryField({ label, value, dir }: { label: string; value: string; dir?: 'rtl' }) {
+  return (
+    <div className="dc-success-field">
+      <span className="dc-success-field__label">{label}</span>
+      <span className="dc-success-field__value" dir={dir} style={dir ? { textAlign: 'left' } : undefined}>{value || '—'}</span>
+    </div>
+  );
+}
+
+function BRPageShell({ service, navigate, title, parent, tab = 'new', children }: {
+  service: ServiceDef; navigate: (page: Page) => void; title: string; children: React.ReactNode;
+  parent?: { label: string; onClick: () => void }; tab?: FormTab;
+}) {
+  const back = parent?.onClick ?? (() => navigate({ name: 'form', serviceId: service.id }));
+  return (
+    <>
+      <HeroBanner title={service.title} subtitle={service.subtitle} />
+      <div className="dc-container">
+        <Breadcrumb items={[
+          { label: 'Home', onClick: () => navigate({ name: 'home' }) },
+          { label: 'Service Center', onClick: () => navigate({ name: 'home' }) },
+          { label: 'Dubai Trade', onClick: () => navigate({ name: 'home' }) },
+          { label: service.title, onClick: () => navigate({ name: 'form', serviceId: service.id }) },
+          ...(parent ? [parent] : []),
+          { label: title },
+        ]} />
+        <div className="dc-info-header">
+          <button className="dc-back-btn" onClick={back}><ArrowLeft /></button>
+          <h2 className="dc-info-header__title">{title}</h2>
+        </div>
+        <div className="dc-form-tabs">
+          {formTabsFor(service.id).map(t => (
+            <button key={t} className={`dc-form-tab ${t === tab ? 'dc-form-tab--active' : ''}`}
+              onClick={() => goFormTab(navigate, service.id, t)}>
+              {FORM_TAB_LABELS[t]}
+            </button>
+          ))}
+        </div>
+        {children}
+      </div>
+    </>
+  );
+}
+
+function EditIcon() {
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>;
+}
+function TrashIcon() {
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>;
+}
+
+// A page section the side menu / stepper can jump to. The heading collapses it; the body is only
+// hidden (not unmounted) so half-typed entry fields survive a collapse.
+type BRSectionCtl = { id: string; collapsed: boolean; onToggle: () => void };
+
+function BRSection({ id, collapsed, onToggle, title, count, aside, children }: BRSectionCtl & {
+  title: string; count?: React.ReactNode; aside?: React.ReactNode; children: React.ReactNode;
+}) {
+  return (
+    <section id={`br-${id}`} className="dc-form-section dc-br-section">
+      <div className="dc-br-list__head">
+        <h4 className="dc-form-section__heading" style={{ margin: 0 }}>
+          <button type="button" className="dc-br-section__toggle" aria-expanded={!collapsed} aria-controls={`br-${id}-body`} onClick={onToggle}>
+            {title}
+            {count !== undefined && <span className="dc-br-section__count">{count}</span>}
+          </button>
+        </h4>
+        <div className="dc-br-section__right">
+          {aside}
+          {/* Same toggle as the title; hidden from the accessibility tree to avoid a duplicate control */}
+          <button type="button" className="dc-br-section__chev-btn" tabIndex={-1} aria-hidden="true" onClick={onToggle}>
+            <svg className={`dc-br-section__chev${collapsed ? '' : ' dc-br-section__chev--open'}`} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id={`br-${id}-body`} className="dc-br-section__body" hidden={collapsed}>{children}</div>
+    </section>
+  );
+}
+
+function BRListSection<T>({ title, columns, rows, cells, form, action, editingIndex = null, onEdit, onDelete, note, emptyText, ...ctl }: BRSectionCtl & {
+  title: string; columns: string[]; rows: T[]; cells: (row: T) => React.ReactNode[];
+  form?: React.ReactNode; action?: React.ReactNode; editingIndex?: number | null; onEdit?: (i: number) => void; onDelete?: (i: number) => void;
+  note?: React.ReactNode; emptyText?: string;
+}) {
+  const hasActions = !!(onEdit || onDelete);
+  return (
+    <BRSection {...ctl} title={title} count={rows.length}
+      aside={<>
+        {editingIndex !== null && <span className="dc-br-editing">Editing row {editingIndex + 1} · Reset to cancel</span>}
+        {action}
+      </>}>
+      {note}
+      {form}
+      <div style={{ overflowX: 'auto' }}>
+        <table className="dc-charges__table dc-br-table">
+          <thead>
+            <tr>
+              {columns.map(c => <th key={c}>{c}</th>)}
+              {hasActions && <th className="dc-br-table__actions">Actions</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td className="dc-br-table__empty" colSpan={columns.length + (hasActions ? 1 : 0)}>
+                  {emptyText ?? 'No records added yet. Enter the details above and click Save.'}
+                </td>
+              </tr>
+            ) : rows.map((row, i) => (
+              <tr key={i} className={i === editingIndex ? 'dc-br-table__row--selected' : undefined}>
+                {cells(row).map((c, j) => <td key={j}>{c}</td>)}
+                {hasActions && (
+                  <td className="dc-br-table__actions">
+                    {onEdit && <button className="dc-br-icon-btn" title="Edit" aria-label={`Edit ${title} row ${i + 1}`} onClick={() => onEdit(i)}><EditIcon /></button>}
+                    {onDelete && <button className="dc-br-icon-btn dc-br-icon-btn--danger" title="Delete" aria-label={`Delete ${title} row ${i + 1}`} onClick={() => onDelete(i)}><TrashIcon /></button>}
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </BRSection>
+  );
+}
+
+// ── Page navigation: sticky side menu, or the same sections split into steps ──
+type BRNavItem = { id: string; label: string; done: boolean; optional?: boolean };
+const BR_SECTION_LABELS: Record<string, string> = {
+  business: 'Business Details', license: 'License Details', contact: 'Business Contact Details', types: 'Business Types',
+  epl: 'Emirates Post License (EPL) Details', carriers: 'Carrier Codes', activities: 'License Activities',
+  addresses: 'Business Addresses', facilities: 'Facility Details', users: 'User Registration', groups: 'Group Information',
+  attachments: 'Attachments', vat: 'VAT Registration Certificate', validation: 'Validation Code',
+};
+type BRStep = { label: string; ids: string[] };
+// Steps carry the section names; only the three request sections share one step.
+const BR_REQUEST_DETAIL_IDS = ['business', 'license', 'contact'];
+const brSteps = (items: BRNavItem[]): BRStep[] => [
+  { label: 'Request Details', ids: BR_REQUEST_DETAIL_IDS },
+  ...items.filter(s => !BR_REQUEST_DETAIL_IDS.includes(s.id)).map(s => ({ label: s.label, ids: [s.id] })),
+];
+// First page (New tab): Request Details is being filled; the rest unlock after Save and Proceed.
+const BR_FIRST_PAGE_IDS = ['business', 'license', 'contact', 'types', 'activities', 'addresses', 'facilities', 'users', 'groups', 'attachments', 'vat'];
+const BR_FIRST_PAGE_LOCKED = BR_FIRST_PAGE_IDS.slice(3);
+const BR_FIRST_PAGE_STEPS = brSteps(BR_FIRST_PAGE_IDS.map(id => ({ id, label: BR_SECTION_LABELS[id], done: false })));
+
+function CheckMark() {
+  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
+}
+
+function BRSideNav({ items, active, onGo, rail, onToggleRail, lockedIds = [] }: {
+  items: BRNavItem[]; active: string; onGo: (id: string) => void; rail: boolean; onToggleRail: () => void; lockedIds?: string[];
+}) {
+  const required = items.filter(s => !s.optional);
+  const doneCount = required.filter(s => s.done).length;
+  const listRef = useRef<HTMLOListElement>(null);
+  // On narrow screens the menu is a horizontal bar: keep the active chip in view.
+  useEffect(() => {
+    const list = listRef.current;
+    const item = list?.querySelector<HTMLElement>('.dc-br-nav__item--active');
+    if (!list || !item || list.scrollWidth <= list.clientWidth) return;
+    list.scrollLeft += item.getBoundingClientRect().left - list.getBoundingClientRect().left - 16;
+  }, [active]);
+  return (
+    <nav className={`dc-br-nav${rail ? ' dc-br-nav--rail' : ''}`} aria-label="Form sections">
+      <div className="dc-br-nav__top">
+        {rail ? (
+          <span className="dc-br-nav__mini" title={`${doneCount} of ${required.length} required sections complete`}>{doneCount}/{required.length}</span>
+        ) : (
+          <div className="dc-br-nav__progress">
+            <span><strong>{doneCount} of {required.length}</strong> required sections complete</span>
+            <div className="dc-br-nav__bar"><div style={{ width: `${(doneCount / required.length) * 100}%` }} /></div>
+          </div>
+        )}
+        <button type="button" className="dc-br-nav__collapse" onClick={onToggleRail} aria-expanded={!rail}
+          aria-label={rail ? 'Expand section menu' : 'Collapse section menu'} title={rail ? 'Expand menu' : 'Collapse menu'}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+            style={{ transform: rail ? 'rotate(180deg)' : undefined }}>
+            <polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/>
+          </svg>
+        </button>
+      </div>
+      <ol className="dc-br-nav__list" ref={listRef}>
+        {items.map((s, i) => (
+          <li key={s.id}>
+            <button type="button" className={`dc-br-nav__item${s.id === active ? ' dc-br-nav__item--active' : ''}`}
+              aria-current={s.id === active ? 'location' : undefined} onClick={() => onGo(s.id)}
+              disabled={lockedIds.includes(s.id)}
+              title={lockedIds.includes(s.id) ? 'Available after Save and Proceed' : rail ? s.label : undefined} aria-label={`${s.label}${s.optional ? ' (optional)' : ''}${s.done ? ', complete' : ''}`}>
+              <span className={`dc-br-nav__mark${s.done ? ' dc-br-nav__mark--done' : ''}`} aria-label={s.done ? 'Complete' : undefined}>
+                {s.done ? <CheckMark /> : i + 1}
+              </span>
+              <span className="dc-br-nav__label">{s.label}{s.optional && <em>Optional</em>}</span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
+}
+
+// Side stepper or top stepper; the choice carries from the first page to the full form (remembered per browser).
+type BRLayout = 'menu' | 'steps';
+function useBRLayout() {
+  const [layout, setLayoutState] = useState<BRLayout>(() => {
+    try { return localStorage.getItem('br-layout') === 'menu' ? 'menu' : 'steps'; } catch { return 'steps'; }
+  });
+  const setLayout = (l: BRLayout) => {
+    setLayoutState(l);
+    try { localStorage.setItem('br-layout', l); } catch { /* storage unavailable */ }
+  };
+  return [layout, setLayout] as const;
+}
+
+// The side stepper can shrink to a narrow rail of numbers/ticks; remembered per browser.
+function useBRNavRail() {
+  const [rail, setRail] = useState(() => { try { return localStorage.getItem('br-nav-rail') === '1'; } catch { return false; } });
+  const toggle = () => setRail(r => {
+    try { localStorage.setItem('br-nav-rail', r ? '0' : '1'); } catch { /* storage unavailable */ }
+    return !r;
+  });
+  return [rail, toggle] as const;
+}
+
+// The section (by id, comma-separated) currently under the sticky header while scrolling.
+function useBRActiveSection(sectionIds: string, enabled = true) {
+  const ids = sectionIds.split(',');
+  const [active, setActive] = useState(ids[0]);
+  useEffect(() => {
+    if (!enabled) return;
+    const list = sectionIds.split(',');
+    const onScroll = () => {
+      const line = (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--br-offset')) || 96) + 40;
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+      let current = list[0];
+      for (const id of list) {
+        const el = document.getElementById(`br-${id}`);
+        if (el && el.getBoundingClientRect().top <= line) current = id;
+      }
+      setActive(atBottom ? list[list.length - 1] : current);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [sectionIds, enabled]);
+  return [active, setActive] as const;
+}
+
+function BRLayoutSwitch({ layout, onChange }: { layout: BRLayout; onChange: (l: BRLayout) => void }) {
+  return (
+    <div className="dc-br-viewbar">
+      <span>Layout</span>
+      <div className="dc-br-viewbar__toggle" role="group" aria-label="Page layout">
+        <button type="button" aria-pressed={layout === 'menu'} onClick={() => onChange('menu')}>Side stepper</button>
+        <button type="button" aria-pressed={layout === 'steps'} onClick={() => onChange('steps')}>Top stepper</button>
+      </div>
+    </div>
+  );
+}
+
+// Sticky offsets follow the site header, which wraps to two rows on narrow screens. Sections must also
+// clear the sticky stepper, or the side menu once it turns into a bar below 1100px.
+function useBRStickyOffsets(enabled: boolean, dep?: unknown) {
+  useEffect(() => {
+    if (!enabled) return;
+    const root = document.documentElement;
+    const measure = () => {
+      const header = document.querySelector('.dc-navbar')?.getBoundingClientRect().height ?? 60;
+      const stacked = window.matchMedia('(max-width: 1100px)').matches;
+      const bar = document.querySelector('.dc-br-steps') ?? (stacked ? document.querySelector('.dc-br-nav') : null);
+      const top = Math.round(header) + (stacked ? 8 : 16);
+      root.style.setProperty('--br-top', `${top}px`);
+      root.style.setProperty('--br-offset', `${top + (bar ? Math.round(bar.getBoundingClientRect().height) + 8 : 0)}px`);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => {
+      window.removeEventListener('resize', measure);
+      root.style.removeProperty('--br-top');
+      root.style.removeProperty('--br-offset');
+    };
+  }, [enabled, dep]);
+}
+
+function BRStepper({ steps, items, current, onGo, lockedAfter }: {
+  steps: BRStep[]; items: BRNavItem[]; current: number; onGo: (step: number) => void; lockedAfter?: number;
+}) {
+  return (
+    <div className="dc-br-steps">
+    <ol className="dc-br-steps__list" aria-label="Steps">
+      {steps.map(({ label, ids }, i) => {
+        const own = items.filter(s => ids.includes(s.id));
+        const required = own.filter(s => !s.optional);
+        const done = required.length ? required.every(s => s.done) : own.some(s => s.done);
+        const state = i === current ? 'current' : done ? 'done' : 'todo';
+        return (
+          <li key={label} className={`dc-br-steps__step dc-br-steps__step--${state}`}>
+            <button type="button" onClick={() => onGo(i)} aria-current={i === current ? 'step' : undefined}
+              disabled={lockedAfter !== undefined && i > lockedAfter} title={lockedAfter !== undefined && i > lockedAfter ? 'Available after Save and Proceed' : undefined}>
+              <span className="dc-br-steps__mark">{state === 'done' ? <CheckMark /> : i + 1}</span>
+              <span className="dc-br-steps__label">{label}</span>
+            </button>
+          </li>
+        );
+      })}
+    </ol>
+    <p className="dc-br-steps__caption">Step {current + 1} of {steps.length} · {steps[current]?.label}</p>
+    </div>
+  );
+}
+
+function BRModal({ title, onClose, onSave, saveLabel = 'Save', width = 900, children }: {
+  title: string; onClose: () => void; onSave: () => void; saveLabel?: string; width?: number; children: React.ReactNode;
+}) {
+  return (
+    <div className="dc-modal-overlay dc-br-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="dc-br-modal" style={{ maxWidth: width }} role="dialog" aria-modal="true" aria-label={title}>
+        <div className="dc-br-modal__head">
+          <h3>{title}</h3>
+          <button className="dc-br-modal__close" onClick={onClose} aria-label="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div className="dc-br-modal__body">{children}</div>
+        <div className="dc-br-modal__foot">
+          <button className="dc-btn dc-btn--outline" onClick={onClose}>Cancel</button>
+          <button className="dc-btn dc-btn--primary" onClick={onSave}>{saveLabel}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BRDeleteConfirm({ what, onNo, onYes }: { what: string; onNo: () => void; onYes: () => void }) {
+  return (
+    <div className="dc-modal-overlay dc-br-overlay dc-br-overlay--center" onMouseDown={e => { if (e.target === e.currentTarget) onNo(); }}>
+      <div className="dc-br-modal" style={{ maxWidth: 440, textAlign: 'center', padding: '36px 32px 32px' }} role="alertdialog" aria-label="Confirm delete">
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+            <circle cx="32" cy="32" r="32" fill="#FEF3C7"/>
+            <path d="M32 18L47 44H17L32 18Z" fill="#F59E0B"/>
+            <rect x="30.5" y="26" width="3" height="10" rx="1.5" fill="#fff"/>
+            <circle cx="32" cy="39.5" r="1.8" fill="#fff"/>
+          </svg>
+        </div>
+        <h3 style={{ fontSize: 22, fontWeight: 700, color: '#0E1B3D', margin: '0 0 10px' }}>Are you sure to delete?</h3>
+        <p style={{ fontSize: 16, color: '#3D4E63', lineHeight: 1.6, margin: '0 0 28px' }}>This {what} will be removed from the request.</p>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+          <button className="dc-btn dc-btn--outline" style={{ minWidth: 120 }} onClick={onNo}>No</button>
+          <button className="dc-btn dc-btn--primary" style={{ minWidth: 120 }} onClick={onYes}>Yes</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── User Code lookup (the one pop-up left: it searches existing users) ──
+function BRUserCodeSearchModal({ onClose, onSelect }: { onClose: () => void; onSelect: (u: typeof BR_USER_DIRECTORY[number]) => void }) {
+  const [code, setCode] = useState('');
+  const [results, setResults] = useState<typeof BR_USER_DIRECTORY | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
+  const go = () => {
+    const q = code.trim().toLowerCase();
+    setResults(BR_USER_DIRECTORY.filter(u => !q || u.userCode.toLowerCase().includes(q)));
+    setPicked(null);
+  };
+  return (
+    <BRModal title="User Code Search" saveLabel="OK" width={860} onClose={onClose} onSave={() => {
+      const user = BR_USER_DIRECTORY.find(u => u.userCode === picked) ?? results?.[0] ?? BR_USER_DIRECTORY[0];
+      onSelect(user);
+    }}>
+      <div className="dc-form-row" style={{ alignItems: 'flex-start' }}>
+        <div className="dc-float-wrapper dc-field--half">
+          <div className="dc-float-field">
+            <input className="dc-float-input" placeholder=" " value={code} autoFocus
+              onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') go(); }} />
+            <label className="dc-float-label">User Code</label>
+          </div>
+          <InfoTooltip tip="Please enter existing User Code, e.g. USR10234" />
+        </div>
+        <div className="dc-field--half" style={{ display: 'flex', alignItems: 'center', height: 56 }}>
+          <button className="dc-btn dc-btn--primary" style={{ minWidth: 120 }} onClick={go}>Go</button>
+        </div>
+      </div>
+      <div style={{ overflowX: 'auto' }}>
+        <table className="dc-charges__table dc-br-table">
+          <thead>
+            <tr><th>First Name</th><th>Last Name</th><th>User Code</th><th>Business Code</th><th style={{ textAlign: 'left' }}>Business Name</th></tr>
+          </thead>
+          <tbody>
+            {!results ? (
+              <tr><td className="dc-br-table__empty" colSpan={5}>Enter a User Code and click Go.</td></tr>
+            ) : results.length === 0 ? (
+              <tr><td className="dc-br-table__empty" colSpan={5}>No users found for "{code}".</td></tr>
+            ) : results.map(u => (
+              <tr key={u.userCode} className={`dc-br-table__row--selectable${u.userCode === picked ? ' dc-br-table__row--selected' : ''}`}
+                onClick={() => setPicked(u.userCode)} aria-selected={u.userCode === picked}>
+                <td>{u.firstName}</td><td>{u.lastName}</td><td>{u.userCode}</td><td>{u.businessCode}</td>
+                <td style={{ textAlign: 'left' }}>{u.businessName}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </BRModal>
+  );
+}
+
+// ── Inline entry forms (fields sit above each table; Save adds or updates a row) ──
+function BREntryActions({ onSave, onReset }: { onSave: () => void; onReset: () => void }) {
+  return (
+    <div className="dc-br-entry__actions">
+      <button type="button" className="dc-btn dc-btn--primary" onClick={onSave}>Save</button>
+      <button type="button" className="dc-btn dc-btn--outline" onClick={onReset}>Reset</button>
+    </div>
+  );
+}
+
+type BREntryProps<T> = { initial: T; onSave: (x: T) => void; onReset: () => void };
+
+function BRAddressForm({ initial, onSave, onReset }: BREntryProps<BRAddress>) {
+  const [a, setA] = useState(initial);
+  const set = (k: keyof BRAddress) => (v: string) => setA(p => ({ ...p, [k]: v }));
+  const regions = a.country ? (BR_REGIONS[a.country] ?? ['Capital Region', 'Northern Region', 'Southern Region']) : [];
+  const cities = a.emirate ? (BR_CITIES[a.emirate] ?? [a.emirate]) : [];
+  return (
+    <div className="dc-br-entry">
+      <FloatInput label="Address Line 1" required value={a.line1} onChange={set('line1')} />
+      <FloatInput label="Address Line 2" required value={a.line2} onChange={set('line2')} />
+      <FloatInput label="Street" value={a.street} onChange={set('street')} />
+      <FloatInput label="Area" value={a.area} onChange={set('area')} />
+      <FloatInput label="P.O.Box" required value={a.poBox} onChange={set('poBox')} />
+      <FloatDropdown label="Country" required value={a.country} options={BR_COUNTRIES}
+        onChange={v => setA(p => ({ ...p, country: v, emirate: '', city: '' }))} />
+      <div className="dc-float-wrapper">
+        <FloatDropdown label="Emirate/State/Province" required value={a.emirate} options={regions} disabled={!a.country}
+          onChange={v => setA(p => ({ ...p, emirate: v, city: '' }))} />
+        {!a.country && <InfoTooltip tip="Select Country first" />}
+      </div>
+      <div className="dc-float-wrapper">
+        <FloatDropdown label="City" required value={a.city} options={cities} disabled={!a.emirate} onChange={set('city')} />
+        {!a.emirate && <InfoTooltip tip="Select Emirate/State/Province first" />}
+      </div>
+      <BREntryActions onReset={onReset} onSave={() => onSave({
+        ...a,
+        line1: a.line1 || 'Office 1204, Business Bay Tower', line2: a.line2 || 'Business Bay', poBox: a.poBox || '12345',
+        country: a.country || 'United Arab Emirates', emirate: a.emirate || 'Dubai', city: a.city || 'Dubai',
+      })} />
+    </div>
+  );
+}
+
+function BRCarrierCodeForm({ initial, onSave, onReset }: BREntryProps<string>) {
+  const [c, setC] = useState(initial);
+  return (
+    <>
+      <BRNote tone="danger">Note: It is mandatory to upload the "Proof-Airline Agent for Cargo" document for every carrier being registered.</BRNote>
+      <div className="dc-br-entry">
+        <FloatInput label="Carrier Code" required value={c} onChange={setC} />
+        <BREntryActions onReset={onReset} onSave={() => onSave(c.trim().toUpperCase() || 'EK')} />
+      </div>
+    </>
+  );
+}
+
+function BRLicenseActivityForm({ initial, licenseType, onSave, onReset }: BREntryProps<string> & { licenseType: string }) {
+  const [a, setA] = useState(initial);
+  return (
+    <div className="dc-br-entry">
+      <div className="dc-float-wrapper">
+        <FloatDropdown label="License Activity" required value={a} onChange={setA} options={BR_LICENSE_ACTIVITIES} />
+        <InfoTooltip tip={`Select an activity for the ${licenseType || 'selected'} license. Type in the list to search.`} />
+      </div>
+      <BREntryActions onReset={onReset} onSave={() => onSave(a || BR_LICENSE_ACTIVITIES[0])} />
+    </div>
+  );
+}
+
+function BRFacilityForm({ initial, onSave, onReset }: BREntryProps<BRFacility>) {
+  const [f, setF] = useState(initial);
+  return (
+    <div className="dc-br-entry">
+      <FloatInput label="Facility Name" required value={f.name} onChange={v => setF(p => ({ ...p, name: v }))} />
+      <FloatDropdown label="Facility Type" required value={f.type} onChange={v => setF(p => ({ ...p, type: v }))} options={BR_FACILITY_TYPES} />
+      <FloatInput label="Status" required readOnly value={f.status} />
+      <BREntryActions onReset={onReset} onSave={() => onSave({ ...f, name: f.name || 'Main Branch', type: f.type || 'Branch' })} />
+    </div>
+  );
+}
+
+// User fields shared by the inline User Registration entry and the full User Registration page.
+function BRUserDetailFields({ u, set, onSearch }: { u: BRUser; set: (k: keyof BRUser) => (v: string) => void; onSearch: () => void }) {
+  return (
+    <>
+      <div className="dc-float-wrapper">
+        <div className="dc-float-field">
+          <input className="dc-float-input dc-float-input--icon dc-float-input--readonly" placeholder=" " readOnly value={u.userCode} />
+          <label className="dc-float-label">User Code</label>
+          <button type="button" className="dc-float-icon-suffix" aria-label="Search existing User Code"
+            style={{ pointerEvents: 'auto', cursor: 'pointer', padding: 0, color: '#1360D2' }} onClick={onSearch}>
+            <SearchIcon />
+          </button>
+        </div>
+        <InfoTooltip tip="To select an existing User, kindly click on search icon in the User Code field." />
+      </div>
+      <FloatInput label="First Name" required value={u.firstName} onChange={set('firstName')} />
+      <FloatInput label="Middle Name" value={u.middleName} onChange={set('middleName')} />
+      <FloatInput label="Last Name" required value={u.lastName} onChange={set('lastName')} />
+      <FloatInput label="Full Arabic Name" dir="rtl" value={u.arabicName} onChange={set('arabicName')} />
+      <FloatDropdown label="Gender" value={u.gender} onChange={set('gender')} options={['Male', 'Female']} />
+      <FloatInput label="Designation" required value={u.designation} onChange={set('designation')} />
+      <FloatInput label="Place of Work" value={u.placeOfWork} onChange={set('placeOfWork')} />
+      <FloatDropdown label="Preferred Mode of Contact" value={u.contactMode} onChange={set('contactMode')} options={['Email', 'Mobile', 'Phone']} />
+      <FloatDropdown label="Nationality" value={u.nationality} onChange={set('nationality')} options={BR_COUNTRIES} />
+      <DateField label="Date of Birth" value={u.dob} onChange={set('dob')} />
+      <FloatDropdown label="Place of Birth" value={u.placeOfBirth} onChange={set('placeOfBirth')} options={BR_COUNTRIES} />
+    </>
+  );
+}
+
+function BRUserContactFields({ u, set }: { u: BRUser; set: (k: keyof BRUser) => (v: string) => void }) {
+  return (
+    <>
+      <PhoneField label="Mobile" required value={u.mobile} onChange={set('mobile')} tooltip={BR_PHONE_HINT} />
+      <FloatInput label="Email" required value={u.email} onChange={set('email')} />
+      <PhoneField label="Phone" required value={u.phone} onChange={set('phone')} tooltip={BR_PHONE_HINT} />
+      <PhoneField label="Fax" required value={u.fax} onChange={set('fax')} tooltip={BR_PHONE_HINT} />
+      <FloatInput label="Alternate Email" value={u.altEmail} onChange={set('altEmail')} />
+    </>
+  );
+}
+
+const withUserSamples = (u: BRUser): BRUser => ({
+  ...u,
+  firstName: u.firstName || 'Ahmed', lastName: u.lastName || 'Khan', designation: u.designation || 'Operations Manager',
+  mobile: u.mobile || '971-55-1234567', phone: u.phone || '971-4-1234567', fax: u.fax || '971-4-1234568',
+  email: u.email || 'ahmed.khan@test.com',
+});
+
+function BRAddUserButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" className="dc-btn dc-btn--blue dc-br-add-user" onClick={onClick}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add User
+    </button>
+  );
+}
+
+function BRCredentialForm({ initial, onSave, onReset }: BREntryProps<BRCredential>) {
+  const [c, setC] = useState(initial);
+  const set = (k: keyof BRCredential) => (v: string) => setC(p => ({ ...p, [k]: v }));
+  return (
+    <div className="dc-br-entry">
+      <FloatInput label="Identity Number" required value={c.number} onChange={set('number')} />
+      <FloatDropdown label="Identity Type" required value={c.type} onChange={set('type')} options={BR_IDENTITY_TYPES} />
+      <FloatDropdown label="Issuing Country" required value={c.country} onChange={set('country')} options={BR_COUNTRIES} />
+      <DateField label="Issuing Date" required value={c.issueDate} onChange={set('issueDate')} />
+      <DateField label="Expiry Date" required value={c.expiryDate} onChange={set('expiryDate')} />
+      <BREntryActions onReset={onReset} onSave={() => onSave({
+        number: c.number || '784-1990-1234567-1', type: c.type || 'Emirates ID', country: c.country || 'United Arab Emirates',
+        issueDate: c.issueDate || '2024-01-15', expiryDate: c.expiryDate || '2029-01-14',
+      })} />
+    </div>
+  );
+}
+
+// Rows + inline-entry editing + delete confirmation for one list on the User Registration page.
+function useBREntryList<T>(initial: T[]) {
+  const [rows, setRows] = useState(initial);
+  const [editing, setEditing] = useState<number | null>(null);
+  const [rev, setRev] = useState(0);
+  const [pendingDelete, setPendingDelete] = useState<number | null>(null);
+  const reset = () => { setEditing(null); setRev(r => r + 1); };
+  return {
+    rows, editing, pendingDelete, reset,
+    formKey: `${editing ?? 'new'}-${rev}`,
+    save: (item: T) => {
+      setRows(list => editing === null ? [...list, item] : list.map((x, i) => i === editing ? item : x));
+      reset();
+    },
+    edit: (i: number) => setEditing(i),
+    askDelete: (i: number) => setPendingDelete(i),
+    cancelDelete: () => setPendingDelete(null),
+    confirmDelete: () => {
+      if (pendingDelete === null) return;
+      setRows(list => list.filter((_, i) => i !== pendingDelete));
+      if (editing === pendingDelete) reset();
+      else if (editing !== null && editing > pendingDelete) setEditing(editing - 1);
+      setPendingDelete(null);
+    },
+  };
+}
+
+// ── User Registration (opened from the User Registration section's Add User or a row's Edit) ──
+function BRUserRegistrationPage({ service, navigate, initial, onSave, onBack, parentTitle, tab }: {
+  service: ServiceDef; navigate: (page: Page) => void; initial: BRUserRecord;
+  onSave: (u: BRUserRecord) => void; onBack: () => void; parentTitle: string; tab: FormTab;
+}) {
+  const { account, ...details } = initial;
+  const [u, setU] = useState<BRUser>(details);
+  const [acc, setAcc] = useState(account);
+  const credentials = useBREntryList(account.credentials);
+  const addresses = useBREntryList(account.addresses);
+  const attachments = useBREntryList(account.attachments);
+  const [searching, setSearching] = useState(false);
+  const [loginCheck, setLoginCheck] = useState<'available' | 'verified' | null>(null);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const sec = (id: string): BRSectionCtl => ({ id, collapsed: !!collapsed[id], onToggle: () => setCollapsed(c => ({ ...c, [id]: !c[id] })) });
+  const set = (k: keyof BRUser) => (v: string) => setU(p => ({ ...p, [k]: v }));
+  const setA = <K extends keyof BRUserAccount>(k: K, v: BRUserAccount[K]) => setAcc(p => ({ ...p, [k]: v }));
+
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+
+  const loginId = () => acc.loginId.trim() || `${u.firstName}${u.lastName}`.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 16) || 'NEWUSER01';
+  const checkLogin = (result: 'available' | 'verified') => { setA('loginId', loginId()); setLoginCheck(result); };
+  const toggleRole = (r: string) => setA('roles', acc.roles.includes(r) ? acc.roles.filter(x => x !== r) : [...acc.roles, r]);
+
+  const pending = credentials.pendingDelete !== null ? { what: 'user credential', list: credentials }
+    : addresses.pendingDelete !== null ? { what: 'user address', list: addresses }
+    : attachments.pendingDelete !== null ? { what: 'attachment', list: attachments } : null;
+
+  const save = () => onSave({
+    ...withUserSamples(u),
+    account: {
+      ...acc, loginId: loginId(), hintQuestion: acc.hintQuestion || BR_HINT_QUESTIONS[0],
+      credentials: credentials.rows, addresses: addresses.rows, attachments: attachments.rows,
+    },
+  });
+
+  return (
+    <BRPageShell service={service} navigate={navigate} title="User Registration" tab={tab} parent={{ label: parentTitle, onClick: onBack }}>
+      <div className="dc-form-card">
+        <BRSection {...sec('user-details')} title="User Details">
+          <div className="dc-br-fields"><BRUserDetailFields u={u} set={set} onSearch={() => setSearching(true)} /></div>
+        </BRSection>
+
+        <BRSection {...sec('user-contact')} title="User Contact Details">
+          <div className="dc-br-fields"><BRUserContactFields u={u} set={set} /></div>
+        </BRSection>
+
+        <BRSection {...sec('user-login')} title="Login Details">
+          <BRNote>Please Note: Login Id once created cannot be removed</BRNote>
+          {loginCheck && (
+            <BRNote tone="success">{loginCheck === 'available' ? 'Login ID is Available' : 'Login details verified for the existing Dubai Trade Portal user'}</BRNote>
+          )}
+          <div className="dc-br-fields">
+            <FloatInput label="Login Id" required value={acc.loginId} onChange={v => { setA('loginId', v); setLoginCheck(null); }} />
+            <FloatInput label="Password (Max 16 Char)" required type="password" maxLength={16} value={acc.password} onChange={v => setA('password', v)} />
+            {!acc.existingPortalUser && (
+              <>
+                <FloatDropdown label="Hint Question" required value={acc.hintQuestion} onChange={v => setA('hintQuestion', v)} options={BR_HINT_QUESTIONS} />
+                <FloatInput label="Hint Answer" required value={acc.hintAnswer} onChange={v => setA('hintAnswer', v)} />
+              </>
+            )}
+          </div>
+          <label className="dc-br-check" style={{ margin: '20px 0 0' }}>
+            <input type="checkbox" checked={acc.existingPortalUser}
+              onChange={e => { setA('existingPortalUser', e.target.checked); setLoginCheck(null); }} />
+            Already Existing Dubai Trade Portal User
+          </label>
+          <div className="dc-br-login-actions">
+            <button type="button" className="dc-btn dc-btn--outline" disabled={acc.existingPortalUser} onClick={() => checkLogin('available')}>Check Login Availability</button>
+            <button type="button" className="dc-btn dc-btn--outline" disabled={!acc.existingPortalUser} onClick={() => checkLogin('verified')}>Check Login Details</button>
+          </div>
+        </BRSection>
+
+        <BRSection {...sec('user-roles')} title="Roles"
+          aside={<span className="dc-br-count">{acc.roles.length} of {BR_ROLES.length} selected</span>}>
+          <div className="dc-br-type-grid" role="group" aria-label="Roles">
+            {BR_ROLES.map(r => (
+              <label key={r} className={`dc-br-type${acc.roles.includes(r) ? ' dc-br-type--checked' : ''}`}>
+                <input type="checkbox" checked={acc.roles.includes(r)} onChange={() => toggleRole(r)} />
+                {r}
+              </label>
+            ))}
+          </div>
+        </BRSection>
+
+        <BRListSection {...sec('user-credentials')} title="User Credentials"
+          columns={['Identity Number', 'Identity Type', 'Issue Date', 'Expiry Date', 'Issuing Country']}
+          rows={credentials.rows} cells={c => [c.number, c.type, fmtDate(c.issueDate), fmtDate(c.expiryDate), c.country]}
+          form={<BRCredentialForm key={credentials.formKey}
+            initial={credentials.editing !== null ? credentials.rows[credentials.editing] : BR_EMPTY_CREDENTIAL}
+            onSave={credentials.save} onReset={credentials.reset} />}
+          editingIndex={credentials.editing} onEdit={credentials.edit} onDelete={credentials.askDelete} />
+
+        <BRListSection {...sec('user-addresses')} title="User Address" columns={['Address Line 1', 'Country', 'City', 'P.O.Box']}
+          rows={addresses.rows} cells={a => [a.line1, a.country, a.city, a.poBox]}
+          form={<BRAddressForm key={addresses.formKey}
+            initial={addresses.editing !== null ? addresses.rows[addresses.editing] : BR_EMPTY_ADDRESS}
+            onSave={addresses.save} onReset={addresses.reset} />}
+          editingIndex={addresses.editing} onEdit={addresses.edit} onDelete={addresses.askDelete} />
+
+        <BRListSection {...sec('user-attachments')} title="User Attachments"
+          columns={['File Name', 'Document Title', 'Document Type', 'File Type', 'Document Size (In Bytes)']}
+          rows={attachments.rows} cells={a => [a.fileName, a.title, a.docType, a.fileType, a.fileSize.toLocaleString()]}
+          form={<BRAttachmentForm key={attachments.formKey} docTypes={BR_USER_DOCUMENT_TYPES} fallbackType="Emirates ID/National ID"
+            onSave={attachments.save} onReset={attachments.reset} />}
+          onDelete={attachments.askDelete}
+          note={<>
+            <p className="dc-br-warn"><InfoIcon size={18} /> Uploading Trade License Copy is not required if it is issued by "Department of Economy &amp; Tourism - Dubai (DET)"</p>
+            <div className="dc-br-required-docs">
+              <span>Required Documents:</span>
+              <ul>
+                <li>Emirates ID/National ID</li>
+                <li>Passport Copy</li>
+                <li>Visa Copy</li>
+              </ul>
+            </div>
+          </>} />
+
+        <div className="dc-form-actions dc-br-actions">
+          <button className="dc-btn dc-btn--outline" onClick={onBack}><ArrowLeft /> Back to Business Registration</button>
+          <button className="dc-btn dc-btn--blue" onClick={save}>Save User</button>
+        </div>
+      </div>
+
+      {searching && (
+        <BRUserCodeSearchModal onClose={() => setSearching(false)} onSelect={found => {
+          setU(p => ({ ...p, userCode: found.userCode, firstName: found.firstName, lastName: found.lastName }));
+          setSearching(false);
+        }} />
+      )}
+      {pending && <BRDeleteConfirm what={pending.what} onNo={pending.list.cancelDelete} onYes={pending.list.confirmDelete} />}
+    </BRPageShell>
+  );
+}
+
+function BRGroupForm({ initial, onSave, onReset }: BREntryProps<BRGroup>) {
+  const [g, setG] = useState(initial);
+  const lookupName = () => {
+    if (g.code.trim() && !g.name) setG(p => ({ ...p, name: 'Al Noor Holding Group LLC' }));
+  };
+  return (
+    <>
+      <BRNote>Kindly provide the Group business UCID and then click on Group Business Name field.</BRNote>
+      <div className="dc-br-entry">
+        <FloatInput label="Group Business Code" required value={g.code} onChange={v => setG(p => ({ ...p, code: v, name: '' }))} />
+        <FloatInput label="Group Business Name" required readOnly value={g.name} onFocus={lookupName} />
+        <FloatDropdown label="Relationship Type" required value={g.relationship} onChange={v => setG(p => ({ ...p, relationship: v }))} options={BR_RELATIONSHIP_TYPES} />
+        <BREntryActions onReset={onReset} onSave={() => onSave({
+          code: g.code || 'UC00451', name: g.name || 'Al Noor Holding Group LLC', relationship: g.relationship || 'Parent Company',
+        })} />
+      </div>
+    </>
+  );
+}
+
+function BRAttachmentForm({ onSave, onReset, docTypes = BR_DOCUMENT_TYPES, fallbackType = 'Trade License Copy' }: Omit<BREntryProps<BRAttachment>, 'initial'> & {
+  docTypes?: string[]; fallbackType?: string;
+}) {
+  const [file, setFile] = useState<{ name: string; size: number } | null>(null);
+  const [title, setTitle] = useState('');
+  const [docType, setDocType] = useState('');
+  return (
+    <div className="dc-br-entry">
+      <FloatDropdown label="Document Type" value={docType} onChange={setDocType} options={docTypes} />
+      <FloatInput label="Document Title" value={title} onChange={setTitle} hint="e.g. Broker Certification" />
+      <div className="dc-attachments dc-br-entry__full">
+        <div className="dc-field-hint" style={{ marginBottom: 12, marginTop: 0 }}>
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}><path d="M9.9974 13.3327V9.99935M9.9974 6.66602H10.0057M18.3307 9.99935C18.3307 14.6017 14.5998 18.3327 9.9974 18.3327C5.39502 18.3327 1.66406 14.6017 1.66406 9.99935C1.66406 5.39698 5.39502 1.66602 9.9974 1.66602C14.5998 1.66602 18.3307 5.39698 18.3307 9.99935Z" stroke="#5E6B7A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <span>Only .doc .docx .pdf .jpg .xls .xlsx .gif .bmp .txt is allowed, one file per document, file name maximum 200 characters</span>
+        </div>
+        <FileUploadRow multiple={false} accept=".doc,.docx,.pdf,.jpg,.jpeg,.xls,.xlsx,.gif,.bmp,.txt"
+          onFilesChange={fs => setFile(fs[0] ? { name: fs[0].name.slice(0, 200), size: fs[0].size } : null)} />
+      </div>
+      <BREntryActions onReset={onReset} onSave={() => {
+        const name = file?.name ?? 'Trade_License.pdf';
+        onSave({
+          fileName: name, fileType: (name.split('.').pop() ?? '').toUpperCase(), fileSize: file?.size ?? 245760,
+          title: title || fallbackType, docType: docType || fallbackType,
+        });
+      }} />
+    </div>
+  );
+}
+
+// ── New Business Registration (full request, opened by Save and Proceed) ──
+// ── Amend / Update Contact: Dubai Trade login first, then the registered business opens for the change ──
+function BRLoginPage({ service, navigate, kind }: { service: ServiceDef; navigate: (page: Page) => void; kind: 'amend' | 'contact' }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const login = () => navigate({
+    name: 'br-registration', serviceId: service.id, data: withBRSamples(BR_SAMPLE), change: { kind, code: BR_SAMPLE_BUSINESS_CODE },
+  });
+  return (
+    <BRPageShell service={service} navigate={navigate} title="Login" tab={kind}>
+      <div className="dc-form-card dc-br-login">
+        <div className="dc-form-section">
+          <h4 className="dc-form-section__heading">Login to Dubai Trade</h4>
+          <BRNote>
+            To {kind === 'amend' ? 'amend the business registration' : 'update the business contact details'}, kindly log in with your Dubai Trade account.
+          </BRNote>
+          <div className="dc-br-login__fields">
+            <FloatInput label="User Name" required value={username} onChange={setUsername} className="" />
+            <FloatInput label="Password" required type="password" value={password} onChange={setPassword} className="" />
+          </div>
+          <div className="dc-br-login__links">
+            <a href="#" onClick={e => e.preventDefault()}>Forgot Password?</a>
+            <a href="#" onClick={e => e.preventDefault()}>Forgot User Name?</a>
+          </div>
+          <button type="button" className="dc-btn dc-btn--blue dc-br-login__submit" onClick={login}>Login</button>
+          <p className="dc-br-login__register">
+            New to Dubai Trade? <a href="#" onClick={e => { e.preventDefault(); navigate({ name: 'form', serviceId: service.id, tab: 'new' }); }}>Register your business</a>
+          </p>
+        </div>
+      </div>
+    </BRPageShell>
+  );
+}
+
+// ── Renew: Business Code + Validation Code; OK loads the registered business into the form for renewal ──
+function BRRenewForm({ service, navigate }: { service: ServiceDef; navigate: (page: Page) => void }) {
+  const [businessCode, setBusinessCode] = useState('');
+  const [captcha, setCaptcha] = useState('');
+  return (
+    <div className="dc-form-card">
+      <div className="dc-form-section">
+        <h4 className="dc-form-section__heading">Renew Business Code</h4>
+        <div className="dc-br-fields">
+          <FloatInput label="Business Code" required value={businessCode} onChange={setBusinessCode} hint={`e.g. ${BR_SAMPLE_BUSINESS_CODE}`} />
+        </div>
+      </div>
+      <div className="dc-form-section">
+        <h4 className="dc-form-section__heading">Validation Code</h4>
+        <CaptchaWidget value={captcha} onChange={setCaptcha} />
+      </div>
+      <div className="dc-form-actions">
+        <button className="dc-btn dc-btn--outline" onClick={() => { setBusinessCode(''); setCaptcha(''); }}>Reset</button>
+        <button className="dc-btn dc-btn--blue" onClick={() => navigate({
+          name: 'br-registration', serviceId: service.id, data: withBRSamples(BR_SAMPLE), change: { kind: 'renew', code: businessCode.trim().toUpperCase() || BR_SAMPLE_BUSINESS_CODE },
+        })}>OK</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Enquiry: Track Request by Request ID and Validation Code (or License Number); OK reopens the request to continue ──
+function BREnquiryForm({ service, navigate }: { service: ServiceDef; navigate: (page: Page) => void }) {
+  const [requestId, setRequestId] = useState('');
+  const [code, setCode] = useState('');
+  const [captcha, setCaptcha] = useState('');
+  return (
+    <div className="dc-form-card">
+      <div className="dc-form-section">
+        <h4 className="dc-form-section__heading">Track Request</h4>
+        <div className="dc-br-fields">
+          <FloatInput label="Request ID" required value={requestId} onChange={setRequestId} hint={`e.g. ${BR_REQUEST_ID}`} />
+          <FloatInput label="Validation Code / License Number" required value={code} onChange={setCode} hint={`e.g. ${BR_VALIDATION_CODE}`} />
+        </div>
+      </div>
+      <div className="dc-form-section">
+        <h4 className="dc-form-section__heading">Validation Code</h4>
+        <CaptchaWidget value={captcha} onChange={setCaptcha} />
+      </div>
+      <div className="dc-form-actions">
+        <button className="dc-btn dc-btn--outline" onClick={() => { setRequestId(''); setCode(''); setCaptcha(''); }}>Reset</button>
+        <button className="dc-btn dc-btn--blue" onClick={() => navigate({ name: 'br-registration', serviceId: service.id, data: withBRSamples(BR_SAMPLE) })}>OK</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Confirmation after Submit: request reference details, with Print Request (the submitted details) and Print Screen ──
+function BRSubmittedPage({ service, navigate, data }: { service: ServiceDef; navigate: (page: Page) => void; data: BRData }) {
+  const [requestDate] = useState(() => {
+    const t = new Date();
+    return [t.getDate(), t.getMonth() + 1].map(n => String(n).padStart(2, '0')).join('-') + `-${t.getFullYear()}`;
+  });
+  const printRequest = () => {
+    document.body.classList.add('br-print-request');
+    const done = () => { document.body.classList.remove('br-print-request'); window.removeEventListener('afterprint', done); };
+    window.addEventListener('afterprint', done);
+    window.print();
+  };
+  const reference = (
+    <div className="dc-success-grid">
+      <BRSummaryField label="Request ID" value={BR_REQUEST_ID} />
+      <BRSummaryField label="Request Date" value={requestDate} />
+      <div className="dc-success-field">
+        <span className="dc-success-field__label">Status</span>
+        <span className="dc-badge dc-badge--success">Submitted</span>
+      </div>
+      <BRSummaryField label="Validation Code" value={BR_VALIDATION_CODE} />
+    </div>
+  );
+  return (
+    <BRPageShell service={service} navigate={navigate} title="Service Request Detail">
+      <div className="dc-form-card dc-br-confirm">
+        <div className="dc-form-section">
+          <h3 className="dc-br-confirm__title">Confirmation</h3>
+          <div className="dc-success-alert">
+            <div className="dc-success-alert__left">
+              <CheckCircle />
+              <div>
+                <div className="dc-success-alert__title">Request Submitted Successfully</div>
+                <div className="dc-success-alert__msg">
+                  New registration request has been sent for approval. Please note the following information for your reference.
+                </div>
+              </div>
+            </div>
+          </div>
+          {reference}
+          <div className="dc-form-actions dc-form-actions--center dc-no-print">
+            <button className="dc-btn dc-btn--outline" onClick={printRequest}><PrintIcon /> Print Request</button>
+            <button className="dc-btn dc-btn--outline" onClick={() => window.print()}><PrintIcon /> Print Screen</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Printed only by Print Request */}
+      <div className="dc-br-print-request">
+        <h2 className="dc-br-print-request__title">{service.title}</h2>
+        <h3 className="dc-br-confirm__title">Request Details</h3>
+        {reference}
+        <h3 className="dc-br-confirm__title">Business Details</h3>
+        <div className="dc-success-grid">
+          <BRSummaryField label="Business Name" value={data.businessName} />
+          <BRSummaryField label="Business Name (Arabic)" value={data.businessNameAr} dir="rtl" />
+          <BRSummaryField label="Registration Category" value={data.regCategory} />
+          <BRSummaryField label="No. of Employee" value={data.employeeCount} />
+        </div>
+        <h3 className="dc-br-confirm__title">License Details</h3>
+        <div className="dc-success-grid">
+          <BRSummaryField label="License Number" value={data.licenseNumber} />
+          <BRSummaryField label="License Type" value={data.licenseType} />
+          <BRSummaryField label="Issuing Authority" value={data.issuingAuthority} />
+          <BRSummaryField label="Issue Date" value={data.issueDate} />
+          <BRSummaryField label="Valid From" value={data.validFrom} />
+          <BRSummaryField label="Valid To" value={data.validTo} />
+        </div>
+        <h3 className="dc-br-confirm__title">Business Contact Details</h3>
+        <div className="dc-success-grid">
+          <BRSummaryField label="Phone" value={data.phone} />
+          <BRSummaryField label="Fax" value={data.fax} />
+          <BRSummaryField label="Email" value={data.email} />
+          <BRSummaryField label="Operational Email" value={data.operationalEmail} />
+          {data.website && <BRSummaryField label="Website" value={data.website} />}
+        </div>
+      </div>
+    </BRPageShell>
+  );
+}
+
+function BRRegistrationPage({ service, navigate, data, change }: { service: ServiceDef; navigate: (page: Page) => void; data: BRData; change?: BRChange }) {
+  const pageTitle = change ? BR_CHANGE_TEXT[change.kind].title : 'New Business Registration';
+  const pageTab: FormTab = change?.kind ?? 'new';
+  const [d, setD] = useState(data);
+  const set = (k: keyof BRData) => (v: string) => setD(p => ({ ...p, [k]: v }));
+
+  const [addresses, setAddresses] = useState<BRAddress[]>([]);
+  const [types, setTypes] = useState<string[]>([]);
+  const [activities, setActivities] = useState<string[]>([]);
+  const [facilities, setFacilities] = useState<BRFacility[]>([]);
+  const [users, setUsers] = useState<BRUserRecord[]>([]);
+  // The full User Registration page (login, roles, credentials, addresses, attachments) for a new or existing user row.
+  const [userPage, setUserPage] = useState<{ index: number | null; user: BRUserRecord } | null>(null);
+  const addUser = () => setUserPage({ index: null, user: { ...BR_EMPTY_USER, account: BR_EMPTY_ACCOUNT } });
+  const [attachments, setAttachments] = useState<BRAttachment[]>([]);
+  const [groups, setGroups] = useState<BRGroup[]>([]);
+  const [carriers, setCarriers] = useState<string[]>([]);
+  const [applyVat, setApplyVat] = useState(false);
+  const [charteredFlightHandler, setCharteredFlightHandler] = useState(false);
+  const [epl, setEpl] = useState({ number: '', issueDate: '', expiryDate: '' });
+
+  // Some fields and sections only apply to particular business types.
+  const has = (t: string) => types.includes(t);
+  const toggleType = (t: string) => setTypes(list => list.includes(t) ? list.filter(x => x !== t) : [...list, t]);
+  const nocRequired = has('Broker');
+  const showCarrierCodes = has('Airline Agent') || has('Shipping line Agent');
+  const showEpl = has('Courier');
+  const websiteRequired = has('e-Commerce');
+
+  // Which row (if any) each section's entry form is editing; bumping formRev remounts the forms empty.
+  const [editing, setEditing] = useState<{ kind: BRListKind; index: number } | null>(null);
+  const [formRev, setFormRev] = useState(0);
+  const [pendingDelete, setPendingDelete] = useState<{ kind: BRListKind; index: number } | null>(null);
+
+  const editIdx = (kind: BRListKind) => editing?.kind === kind ? editing.index : null;
+  const formKey = (kind: BRListKind) => `${kind}-${editIdx(kind) ?? 'new'}-${formRev}`;
+  const resetForm = () => { setEditing(null); setFormRev(r => r + 1); };
+  const upsert = <T,>(kind: BRListKind, setter: React.Dispatch<React.SetStateAction<T[]>>) => (item: T) => {
+    const idx = editIdx(kind);
+    setter(list => idx === null ? [...list, item] : list.map((x, i) => i === idx ? item : x));
+    resetForm();
+  };
+  const startEdit = (kind: BRListKind) => (index: number) => setEditing({ kind, index });
+  const askDelete = (kind: BRListKind) => (index: number) => setPendingDelete({ kind, index });
+
+  const DELETE_LABEL: Record<BRListKind, string> = {
+    address: 'business address', carrier: 'carrier code', activity: 'license activity', facility: 'facility',
+    user: 'user', group: 'group information record', attachment: 'attachment',
+  };
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+    const drop = <T,>(setter: React.Dispatch<React.SetStateAction<T[]>>) => setter(list => list.filter((_, i) => i !== pendingDelete.index));
+    ({
+      address: () => drop(setAddresses), carrier: () => drop(setCarriers), activity: () => drop(setActivities),
+      facility: () => drop(setFacilities), user: () => drop(setUsers), group: () => drop(setGroups), attachment: () => drop(setAttachments),
+    })[pendingDelete.kind]();
+    if (editing?.kind === pendingDelete.kind) {
+      if (editing.index === pendingDelete.index) resetForm();
+      else if (editing.index > pendingDelete.index) setEditing({ ...editing, index: editing.index - 1 });
+    }
+    setPendingDelete(null);
+  };
+
+  // ── Layout: full-length form with either a sticky side menu or a sticky stepper above it ──
+  const [layout, setLayout] = useBRLayout();
+  const [captcha, setCaptcha] = useState('');
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [navRail, toggleNavRail] = useBRNavRail();
+  const sec = (id: string): BRSectionCtl => ({ id, collapsed: !!collapsed[id], onToggle: () => setCollapsed(c => ({ ...c, [id]: !c[id] })) });
+
+  const sections: BRNavItem[] = [
+    { id: 'business', label: BR_SECTION_LABELS.business, done: !!d.businessName && (!nocRequired || !!d.nocNumber) },
+    { id: 'license', label: BR_SECTION_LABELS.license, done: !!(d.licenseNumber && d.issueDate && d.validFrom && d.validTo) },
+    { id: 'contact', label: BR_SECTION_LABELS.contact, done: !!(d.phone && d.fax && d.email && d.operationalEmail && (!websiteRequired || d.website)) },
+    { id: 'types', label: BR_SECTION_LABELS.types, done: types.length > 0 },
+    ...(showEpl ? [{ id: 'epl', label: BR_SECTION_LABELS.epl, done: !!(epl.number && epl.issueDate && epl.expiryDate) }] : []),
+    ...(showCarrierCodes ? [{ id: 'carriers', label: BR_SECTION_LABELS.carriers, done: carriers.length > 0 }] : []),
+    { id: 'activities', label: BR_SECTION_LABELS.activities, done: activities.length > 0 },
+    { id: 'addresses', label: BR_SECTION_LABELS.addresses, done: addresses.length > 0 },
+    { id: 'facilities', label: BR_SECTION_LABELS.facilities, done: facilities.length > 0 },
+    { id: 'users', label: BR_SECTION_LABELS.users, done: users.length > 0 },
+    { id: 'groups', label: BR_SECTION_LABELS.groups, done: groups.length > 0, optional: true },
+    { id: 'attachments', label: BR_SECTION_LABELS.attachments, done: attachments.length > 0 },
+    { id: 'vat', label: BR_SECTION_LABELS.vat, done: applyVat, optional: true },
+    { id: 'validation', label: BR_SECTION_LABELS.validation, done: !!captcha.trim() },
+  ];
+  // The Validation Code at the foot of the form is not a menu item or a step.
+  const navItems = sections.filter(s => s.id !== 'validation');
+  const sectionIds = navItems.map(s => s.id).join(',');
+
+  useBRStickyOffsets(true, layout);
+
+  const [active, setActive] = useBRActiveSection(sectionIds);
+
+  const goTo = (id: string) => {
+    setCollapsed(c => ({ ...c, [id]: false }));
+    setActive(id);
+    requestAnimationFrame(() => document.getElementById(`br-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
+  const steps = brSteps(navItems);
+  const stepIdx = steps.findIndex(st => st.ids.includes(active));
+  const step = stepIdx === -1 ? 0 : stepIdx;
+  const goStep = (n: number) => goTo(steps[n].ids[0]);
+  // Update Contact opens straight at Business Contact Details.
+  useEffect(() => {
+    // Waits for the page-change scroll to the top to finish, then jumps without animation.
+    if (change?.kind === 'contact') setTimeout(() => {
+      setActive('contact');
+      document.getElementById('br-contact')?.scrollIntoView({ block: 'start' });
+    }, 600);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (userPage) {
+    const closeUserPage = () => {
+      setUserPage(null);
+      setTimeout(() => document.getElementById('br-users')?.scrollIntoView({ block: 'start' }), 0);
+    };
+    return (
+      <BRUserRegistrationPage service={service} navigate={navigate} initial={userPage.user} onBack={closeUserPage} parentTitle={pageTitle} tab={pageTab}
+        onSave={u => {
+          setUsers(list => userPage.index === null ? [...list, u] : list.map((x, i) => i === userPage.index ? u : x));
+          closeUserPage();
+        }} />
+    );
+  }
+
+  const body: Record<string, React.ReactNode> = {
+    business: (
+      <BRSection {...sec('business')} title="Business Details">
+        <div className="dc-br-fields">
+          <FloatInput label="Request ID" readOnly value={BR_REQUEST_ID} />
+          <FloatInput label="Business Name" required value={d.businessName} onChange={set('businessName')} />
+          <FloatInput label="Business Name (Arabic)" dir="rtl" value={d.businessNameAr} onChange={set('businessNameAr')} />
+          <FloatInput label="Registration Category" required readOnly value={d.regCategory} />
+          <FloatDropdown label="No. of Employee" value={d.employeeCount} onChange={set('employeeCount')} options={BR_EMPLOYEE_COUNTS} />
+          <FloatInput label="NOC Number" required={nocRequired} value={d.nocNumber} onChange={set('nocNumber')}
+            hint={nocRequired ? 'Required for the Broker business type' : undefined} />
+        </div>
+        {has('Airline Agent') && (
+          <label className="dc-br-check" style={{ margin: '20px 0 0' }}>
+            <input type="checkbox" checked={charteredFlightHandler} onChange={e => setCharteredFlightHandler(e.target.checked)} />
+            Chartered Flight Handler
+          </label>
+        )}
+      </BRSection>
+    ),
+    license: (
+      <BRSection {...sec('license')} title="License Details">
+        <div className="dc-br-fields">
+          <FloatInput label="License Number" required value={d.licenseNumber} onChange={set('licenseNumber')} />
+          <FloatInput label="License Type" required readOnly value={d.licenseType} />
+          <FloatInput label="Issuing Authority" required readOnly value={d.issuingAuthority} />
+          <DateField label="License Original Issue Date" required value={d.issueDate} onChange={set('issueDate')} hint={BR_DATE_HINT} />
+          <DateField label="License Valid From" required value={d.validFrom} onChange={set('validFrom')} hint={BR_DATE_HINT} />
+          <DateField label="License Valid To" required value={d.validTo} onChange={set('validTo')} hint={BR_DATE_HINT} />
+        </div>
+      </BRSection>
+    ),
+    contact: (
+      <BRSection {...sec('contact')} title="Business Contact Details">
+        <div className="dc-br-fields">
+          <PhoneField label="Phone" required value={d.phone} onChange={set('phone')} tooltip={BR_PHONE_HINT} />
+          <PhoneField label="Fax" required value={d.fax} onChange={set('fax')} tooltip={BR_PHONE_HINT} />
+          <FloatInput label="Email" required value={d.email} onChange={set('email')} />
+          <FloatInput label="Operational Email" required value={d.operationalEmail} onChange={set('operationalEmail')} />
+          <FloatInput label="Website" required={websiteRequired} value={d.website} onChange={set('website')} hint="Website URL i.e. company.com, www.company.com, http://company.com" />
+        </div>
+      </BRSection>
+    ),
+    types: (
+      <BRSection {...sec('types')} title="Business Types"
+        aside={<span className="dc-br-count">{types.length} of {BR_BUSINESS_TYPES.length} selected</span>}>
+        <div className="dc-br-type-grid" role="group" aria-label="Business Types">
+          {BR_BUSINESS_TYPES.map(t => (
+            <label key={t} className={`dc-br-type${has(t) ? ' dc-br-type--checked' : ''}`}>
+              <input type="checkbox" checked={has(t)} onChange={() => toggleType(t)} />
+              {t}
+            </label>
+          ))}
+        </div>
+        <InfoTooltip tip="Additional details are requested based on the business types selected." />
+      </BRSection>
+    ),
+    epl: (
+      <BRSection {...sec('epl')} title="Emirates Post License (EPL) Details">
+        <div className="dc-br-fields">
+          <FloatInput label="EPL Number" required value={epl.number} onChange={v => setEpl(p => ({ ...p, number: v }))} />
+          <DateField label="Issue Date" required value={epl.issueDate} onChange={v => setEpl(p => ({ ...p, issueDate: v }))} hint="dd-mm-yyyy i.e. 01-01-2013" />
+          <DateField label="Expiry Date" required value={epl.expiryDate} onChange={v => setEpl(p => ({ ...p, expiryDate: v }))} hint="dd-mm-yyyy i.e. 01-01-2013" />
+        </div>
+      </BRSection>
+    ),
+    carriers: (
+      <BRListSection {...sec('carriers')} title="Carrier Codes" columns={['Carrier Code']}
+        rows={carriers} cells={c => [c]}
+        form={<BRCarrierCodeForm key={formKey('carrier')} initial={editIdx('carrier') !== null ? carriers[editIdx('carrier')!] : ''}
+          onSave={upsert('carrier', setCarriers)} onReset={resetForm} />}
+        editingIndex={editIdx('carrier')} onEdit={startEdit('carrier')} onDelete={askDelete('carrier')} />
+    ),
+    activities: (
+      <BRSection {...sec('activities')} title="License Activities" count={activities.length}>
+        <BRLicenseActivityForm key={formKey('activity')} initial="" licenseType={d.licenseType} onReset={resetForm}
+          onSave={a => { setActivities(list => list.includes(a) ? list : [...list, a]); resetForm(); }} />
+        {activities.length === 0 ? (
+          <p className="dc-br-tags-empty">No license activities added yet. Select an activity above and click Save.</p>
+        ) : (
+          <ul className="dc-br-tag-list" aria-label="License activities">
+            {activities.map((a, i) => (
+              <li key={a} className="dc-br-tag dc-br-tag--removable">
+                {a}
+                <button type="button" title="Delete" aria-label={`Delete ${a}`} onClick={() => askDelete('activity')(i)}><TrashIcon /></button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </BRSection>
+    ),
+    addresses: (
+      <BRListSection {...sec('addresses')} title="Business Addresses" columns={['Address Line 1', 'Country', 'City', 'P.O.Box']}
+        rows={addresses} cells={a => [a.line1, a.country, a.city, a.poBox]}
+        form={<BRAddressForm key={formKey('address')} initial={editIdx('address') !== null ? addresses[editIdx('address')!] : BR_EMPTY_ADDRESS}
+          onSave={upsert('address', setAddresses)} onReset={resetForm} />}
+        editingIndex={editIdx('address')} onEdit={startEdit('address')} onDelete={askDelete('address')} />
+    ),
+    facilities: (
+      <BRListSection {...sec('facilities')} title="Facility Details" columns={['Facility Name', 'Facility Type', 'Status']}
+        rows={facilities} cells={f => [f.name, f.type, <span className="dc-status-badge dc-status-badge--success">{f.status}</span>]}
+        form={<BRFacilityForm key={formKey('facility')} initial={editIdx('facility') !== null ? facilities[editIdx('facility')!] : { name: '', type: '', status: 'Active' }}
+          onSave={upsert('facility', setFacilities)} onReset={resetForm} />}
+        editingIndex={editIdx('facility')} onEdit={startEdit('facility')} onDelete={askDelete('facility')} />
+    ),
+    users: (
+      <BRListSection {...sec('users')} title="User Registration" columns={['User ID', 'First Name', 'Middle Name', 'Last Name', 'Company Name', 'Roles']}
+        rows={users} cells={u => [u.account.loginId || u.userCode || 'New User', u.firstName, u.middleName || '—', u.lastName, d.businessName, u.account.roles.join(', ') || '—']}
+        action={<BRAddUserButton onClick={addUser} />}
+        emptyText="No users added yet. Click Add User to register a user with their login, roles, credentials, address and documents."
+        onEdit={i => setUserPage({ index: i, user: users[i] })} onDelete={askDelete('user')} />
+    ),
+    groups: (
+      <BRListSection {...sec('groups')} title="Group Information (Optional)" columns={['Group Business Name', 'Relationship Type']}
+        rows={groups} cells={g => [g.name, g.relationship]}
+        form={<BRGroupForm key={formKey('group')} initial={editIdx('group') !== null ? groups[editIdx('group')!] : { code: '', name: '', relationship: '' }}
+          onSave={upsert('group', setGroups)} onReset={resetForm} />}
+        editingIndex={editIdx('group')} onEdit={startEdit('group')} onDelete={askDelete('group')} />
+    ),
+    attachments: (
+      <BRListSection {...sec('attachments')} title="Attachments" columns={['Document Title', 'Document Type', 'File Name', 'File Type', 'File Size (Bytes)']}
+        rows={attachments} cells={a => [a.title, a.docType, a.fileName, a.fileType, a.fileSize.toLocaleString()]}
+        form={<BRAttachmentForm key={formKey('attachment')} onSave={upsert('attachment', setAttachments)} onReset={resetForm} />}
+        onDelete={askDelete('attachment')}
+        note={<>
+          <p className="dc-br-warn"><InfoIcon size={18} /> Uploading Trade License Copy is not required if it is issued by "Department of Economy &amp; Tourism - Dubai (DET)"</p>
+          <div className="dc-br-required-docs">
+            <span>Required Documents:</span>
+            <ul>
+              <li>Trade License Copy</li>
+              {showCarrierCodes && <li>Proof-Airline Agent for Cargo (one for every carrier being registered)</li>}
+            </ul>
+          </div>
+        </>} />
+    ),
+    vat: (
+      <BRSection {...sec('vat')} title="VAT Registration Certificate (Optional)">
+        <label className="dc-br-check">
+          <input type="checkbox" checked={applyVat} onChange={e => setApplyVat(e.target.checked)} />
+          Apply for VAT Certificate
+        </label>
+        <BRNote>
+          <ul className="dc-br-note__list">
+            <li>Select this option to receive the VAT Registration Letter.</li>
+            <li>You will require this Letter to register the Customs Business code with FTA to avoid any delay in Customs declaration processing.</li>
+            <li>Charges: VAT registration certificate charge (<DirhamIcon />100) and Knowledge-Innovation Dirham (<DirhamIcon />20) will be applicable.</li>
+          </ul>
+        </BRNote>
+      </BRSection>
+    ),
+    validation: (
+      <BRSection {...sec('validation')} title="Validation Code">
+        <CaptchaWidget value={captcha} onChange={setCaptcha} />
+      </BRSection>
+    ),
+  };
+
+  const actions = (
+    <div className="dc-form-actions dc-br-actions">
+      <button className="dc-btn dc-btn--outline" onClick={() => navigate({ name: 'form', serviceId: service.id })}>Cancel</button>
+      <button className="dc-btn dc-btn--outline" onClick={() => {
+        setD(withBRSamples(d));
+        setDraftSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }}>Save as Draft</button>
+      <button className="dc-btn dc-btn--blue" onClick={() => navigate({ name: 'success', serviceId: service.id, brData: { ...withBRSamples(d), tab: pageTab } })}>Submit</button>
+    </div>
+  );
+
+  return (
+    <BRPageShell service={service} navigate={navigate} title={pageTitle} tab={pageTab}>
+      {change ? (
+        <div className="dc-form-section dc-br-saved">
+          <div className="dc-success-alert">
+            <div className="dc-success-alert__left">
+              <CheckCircle />
+              <div>
+                <div className="dc-success-alert__title">Business Code {change.code} Loaded for {BR_CHANGE_TEXT[change.kind].purpose}</div>
+                <div className="dc-success-alert__msg">
+                  {BR_CHANGE_TEXT[change.kind].message}
+                  {draftSavedAt && <> Draft last saved at {draftSavedAt}.</>}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="dc-success-grid" style={{ marginBottom: 0 }}>
+            <BRSummaryField label="Business Code" value={change.code} />
+            <BRSummaryField label="Business Name" value={d.businessName} />
+            <BRSummaryField label="License Number" value={d.licenseNumber} />
+            <BRSummaryField label="License Valid To" value={d.validTo} />
+          </div>
+        </div>
+      ) : (
+      <div className="dc-form-section dc-br-saved">
+        <div className="dc-success-alert">
+          <div className="dc-success-alert__left">
+            <CheckCircle />
+            <div>
+              <div className="dc-success-alert__title">Business Profile Saved Successfully as Draft!</div>
+              <div className="dc-success-alert__msg">
+                To view this draft later, go to the <strong>Enquiry</strong> tab and enter the Request ID and Validation Code below.
+                Continue filling the form below and submit it within 15 days, otherwise the request will be deleted automatically.
+                {draftSavedAt && <> Draft last saved at {draftSavedAt}.</>}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="dc-success-grid" style={{ marginBottom: 0 }}>
+          <BRSummaryField label="Request ID" value={BR_REQUEST_ID} />
+          <BRSummaryField label="Validation Code" value={BR_VALIDATION_CODE} />
+        </div>
+      </div>
+      )}
+
+      <BRLayoutSwitch layout={layout} onChange={setLayout} />
+
+      {layout === 'steps' && <BRStepper steps={steps} items={navItems} current={step} onGo={goStep} />}
+
+      <div className={layout === 'menu' ? `dc-br-layout${navRail ? ' dc-br-layout--rail' : ''}` : undefined}>
+        {layout === 'menu' && <BRSideNav items={navItems} active={active} onGo={goTo} rail={navRail} onToggleRail={toggleNavRail} />}
+        <div className="dc-form-card">
+          {sections.map(s => <Fragment key={s.id}>{body[s.id]}</Fragment>)}
+          {actions}
+        </div>
+      </div>
+
+      {pendingDelete && (
+        <BRDeleteConfirm what={DELETE_LABEL[pendingDelete.kind]} onNo={() => setPendingDelete(null)} onYes={confirmDelete} />
+      )}
+    </BRPageShell>
+  );
+}
+
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
 function getInitialPage(): Page {
   const params = new URLSearchParams(window.location.hash.slice(1));
@@ -4540,8 +6111,11 @@ export function App() {
       <main className="dc-main">
         {page.name === 'home' && <HomePage navigate={navigate} />}
         {page.name === 'info' && service && <InfoPage service={service} navigate={navigate} />}
-        {page.name === 'form' && service && <ServiceFormPage service={service} navigate={navigate} />}
-        {page.name === 'success' && service && <SuccessPage service={service} navigate={navigate} activePayBillsTab={page.activePayBillsTab} />}
+        {page.name === 'form' && service && <ServiceFormPage key={page.tab ?? 'new'} service={service} navigate={navigate} initialTab={page.tab} />}
+        {page.name === 'success' && service && <SuccessPage service={service} navigate={navigate} activePayBillsTab={page.activePayBillsTab} brData={page.brData} />}
+        {page.name === 'br-registration' && service && <BRRegistrationPage service={service} navigate={navigate} data={page.data} change={page.change} />}
+        {page.name === 'br-login' && service && <BRLoginPage service={service} navigate={navigate} kind={page.kind} />}
+        {page.name === 'br-submitted' && service && <BRSubmittedPage service={service} navigate={navigate} data={page.data} />}
       </main>
       <Footer />
     </div>
